@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bistro 309</title>
+<meta name="theme-color" content="#FBEADF" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #FBEADF; font-family: "EB Garamond", Georgia, serif; -webkit-font-smoothing: antialiased; }
+  #root { min-height: 100vh; }
+</style>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+/* ================= TOKENS ================= */
+const C = {
+  bg: "#FBEADF", bgDeep: "#F4DBC9",
+  parch: "#FFFCF6", parchWell: "#F8EEDF", parchDeep: "#EFDFC6",
+  ink: "#3F2A24", soft: "#8A6F62", line: "#E6D2C0", hair: "#EFE0CF",
+  tomato: "#BE4E3A", tomatoDeep: "#993A2A",
+  honey: "#E8AE3F", gold: "#C49A44", goldLt: "#F2E2B4",
+  rose: "#E39AA0", roseDeep: "#B25E68", blush: "#FADCE0",
+  sage: "#93A57C", sageDeep: "#6E8259", sageLt: "#CBD8B8",
+};
+const F = '"EB Garamond", Georgia, "Times New Roman", serif';
+const KEY = "bunnybistro:v9";
+const uid = () => Math.random().toString(36).slice(2, 9);
+const OUT = "#4A332B";
+
+/* storage: shared artifact storage when available, otherwise the browser */
+const store = {
+  get: async () => {
+    try {
+      if (window.storage) { const r = await window.storage.get(KEY, true); return r ? r.value : null; }
+      return window.localStorage.getItem(KEY);
+    } catch { return null; }
+  },
+  set: async (v) => {
+    try {
+      if (window.storage) await window.storage.set(KEY, v, true);
+      else window.localStorage.setItem(KEY, v);
+    } catch {}
+  },
+};
+
+/* ================= SEED ================= */
+const seed = () => ({
+  passwords: { mayu: "carrot", bran: "clover", guest: "thistle" },
+  inventory: [
+    { id: "i1", name: "Yukon potatoes", qty: 8, unit: "ea", loc: "fridge", cat: "produce", fresh: 12 },
+    { id: "i2", name: "PEI butter", qty: 2, unit: "blocks", loc: "fridge", cat: "dairy", fresh: 30 },
+    { id: "i3", name: "Heavy cream", qty: 250, unit: "ml", loc: "fridge", cat: "dairy", fresh: 5 },
+    { id: "i4", name: "Eggs", qty: 9, unit: "ea", loc: "fridge", cat: "dairy", fresh: 18 },
+    { id: "i5", name: "Turkey bacon", qty: 1, unit: "pack", loc: "fridge", cat: "meat", fresh: 6 },
+    { id: "i6", name: "Shredded cheddar", qty: 1, unit: "bag", loc: "fridge", cat: "dairy", fresh: 20 },
+    { id: "i7", name: "Shallots", qty: 8, unit: "ea", loc: "pantry", cat: "produce", fresh: 25 },
+    { id: "i8", name: "Garlic", qty: 2, unit: "heads", loc: "pantry", cat: "produce", fresh: 30 },
+    { id: "i9", name: "Lemon", qty: 3, unit: "ea", loc: "fridge", cat: "produce", fresh: 10 },
+    { id: "i10", name: "Italian parsley", qty: 1, unit: "bunch", loc: "fridge", cat: "produce", fresh: 2 },
+    { id: "i11", name: "Chives", qty: 1, unit: "bunch", loc: "fridge", cat: "produce", fresh: 1 },
+    { id: "i12", name: "Cherry tomatoes", qty: 1, unit: "pint", loc: "fridge", cat: "produce", fresh: 4 },
+    { id: "i13", name: "Celeriac", qty: 1, unit: "ea", loc: "fridge", cat: "produce", fresh: 14 },
+    { id: "i14", name: "Calabrian chillies", qty: 1, unit: "jar", loc: "fridge", cat: "sauce", fresh: 120 },
+    { id: "i15", name: "Tomato passata", qty: 2, unit: "jars", loc: "pantry", cat: "sauce", fresh: 200 },
+    { id: "i16", name: "Dijon mustard", qty: 1, unit: "jar", loc: "fridge", cat: "sauce", fresh: 180 },
+    { id: "i17", name: "Horseradish", qty: 1, unit: "jar", loc: "fridge", cat: "sauce", fresh: 90 },
+    { id: "i18", name: "Rosemary", qty: 1, unit: "bunch", loc: "fridge", cat: "produce", fresh: 9 },
+    { id: "i19", name: "Tarragon", qty: 1, unit: "bunch", loc: "fridge", cat: "produce", fresh: 3 },
+    { id: "i20", name: "Basil", qty: 1, unit: "plant", loc: "fridge", cat: "produce", fresh: 5 },
+    { id: "i21", name: "Salt", qty: 1, unit: "box", loc: "pantry", cat: "spice", fresh: 900 },
+    { id: "i22", name: "Black pepper", qty: 1, unit: "jar", loc: "pantry", cat: "spice", fresh: 400 },
+    { id: "i23", name: "Bread flour", qty: 2, unit: "kg", loc: "pantry", cat: "grain", fresh: 200 },
+    { id: "i24", name: "Brown rice and lentil penne", qty: 2, unit: "boxes", loc: "pantry", cat: "grain", fresh: 300 },
+    { id: "i25", name: "Beef tallow", qty: 1, unit: "tub", loc: "fridge", cat: "sauce", fresh: 120 },
+    { id: "i26", name: "Red wine", qty: 1, unit: "bottle", loc: "pantry", cat: "sauce", fresh: 60 },
+    { id: "i27", name: "Dark chocolate", qty: 300, unit: "g", loc: "pantry", cat: "grain", fresh: 240 },
+    { id: "i28", name: "Strawberries", qty: 1, unit: "punnet", loc: "fridge", cat: "produce", fresh: 2 },
+    { id: "i34", name: "Whole milk", qty: 1, unit: "carton", loc: "fridge", cat: "dairy", fresh: 7 },
+    { id: "i35", name: "Oat milk", qty: 1, unit: "carton", loc: "fridge", cat: "dairy", fresh: 12 },
+    { id: "i36", name: "Maple syrup", qty: 1, unit: "bottle", loc: "pantry", cat: "sauce", fresh: 300 },
+    { id: "i37", name: "Sugar", qty: 1, unit: "bag", loc: "pantry", cat: "grain", fresh: 400 },
+    { id: "i29", name: "Meatballs", qty: 12, unit: "ea", loc: "freezer", cat: "homemade", fresh: 60, reheat: "Straight from frozen into the simmering sauce, 25 minutes covered. Don't thaw them first." },
+    { id: "i30", name: "Braised duck ragu", qty: 2, unit: "tubs", loc: "freezer", cat: "homemade", fresh: 70, reheat: "Thaw overnight. Low and covered for 15 min with a splash of water, then reduce uncovered until it clings." },
+    { id: "i31", name: "Baguette dough", qty: 2, unit: "portions", loc: "freezer", cat: "homemade", fresh: 30, reheat: "Thaw in the fridge overnight, 2 hrs at room temp, shape, bake 240°C with steam for 20 min." },
+    { id: "i32", name: "Peas", qty: 1, unit: "bag", loc: "freezer", cat: "frozen", fresh: 150 },
+    { id: "i33", name: "Duck legs", qty: 4, unit: "ea", loc: "freezer", cat: "meat", fresh: 120, reheat: "Thaw overnight in the fridge before searing. Never braise from frozen." },
+  ],
+  recipes: [
+    { id: "r1", name: "Lobster Tagliatelle", style: "refined", minutes: 45, course: "main", guest: true, blurb: "Calabrian chilli, PEI butter, lemon, basil",
+      ingredients: [{ name: "Lobster tail", qty: "2" }, { name: "Homemade tagliatelle", qty: "250g" }, { name: "PEI butter", qty: "4 tbsp" }, { name: "Shallots", qty: "2" }, { name: "Garlic", qty: "3 cloves" }, { name: "Calabrian chillies", qty: "1 tsp" }, { name: "Sauvignon blanc", qty: "120ml" }, { name: "Lemon", qty: "1" }, { name: "Italian parsley", qty: "" }, { name: "Basil", qty: "" }, { name: "Cherry tomatoes", qty: "8" }],
+      steps: ["Pull the meat from the tails and keep the shells. Cut the meat into thick coins, back in the fridge.", "Sweat the shallots and garlic in butter until soft with no colour at all. Calabrian chilli in.", "Sauvignon blanc, reduce by half. Drop the shells in for five minutes to lend their flavour, then lift them out.", "Tagliatelle into hard-boiling salted water. Fresh pasta is ninety seconds, not longer.", "Lobster into the pan for two minutes only. Pasta straight over with a ladle of its water, cold butter, lemon zest. Toss hard until it turns glossy.", "Off the heat: lemon juice, blistered tomatoes, torn basil and parsley. Twist it high onto a warm plate."],
+      notes: "The sauce breaks if the pan is too hot when the butter goes in. Take it off, then toss." },
+    { id: "r2", name: "Seared Duck Breast", style: "refined", minutes: 75, course: "main", guest: true, blurb: "Smoked celeriac purée, cognac jus, shiitake, charred shallot",
+      ingredients: [{ name: "Duck breast", qty: "2" }, { name: "Celeriac", qty: "1" }, { name: "Tarragon", qty: "" }, { name: "Shallots", qty: "4" }, { name: "Cognac", qty: "60ml" }, { name: "Shiitake mushrooms", qty: "150g" }, { name: "Heavy cream", qty: "100ml" }, { name: "PEI butter", qty: "" }, { name: "Chives", qty: "" }],
+      steps: ["Score the duck fat in a diamond, down to but not into the meat. Salt it and leave it uncovered in the fridge for an hour.", "Celeriac peeled and cubed, simmered in cream with tarragon until it collapses. Blend until it's silk. Season harder than feels right.", "Duck skin down in a cold dry pan, low heat. Fifteen minutes, pouring off the fat as it renders. Flip for two. Rest ten.", "Caramelize the shallots in the duck fat, cognac in, reduce to nothing, then stock and reduce again until it coats a spoon.", "Shiitakes hard-seared in the remaining fat. A halved shallot cut-side down until it's genuinely charred.", "Slice against the grain. Purée swept down the plate, duck fanned on it, jus around not over, chives last."],
+      notes: "Cold pan, low heat, patience. Every bit of the skin is the dish." },
+    { id: "r3", name: "Steak Frites", style: "refined", minutes: 65, course: "main", guest: true, blurb: "Ribeye, red wine demi, beef tallow fries, lemon herb aioli",
+      ingredients: [{ name: "Ribeye", qty: "2" }, { name: "Yukon potatoes", qty: "4" }, { name: "Beef tallow", qty: "" }, { name: "Red wine", qty: "150ml" }, { name: "Horseradish", qty: "" }, { name: "Chives", qty: "" }, { name: "Lemon", qty: "1" }, { name: "Butter lettuce", qty: "1 head" }, { name: "Dijon mustard", qty: "" }, { name: "PEI butter", qty: "" }],
+      steps: ["Fries cut thin, rinsed until the water runs clear, dried completely. Blanch in tallow at 140°C for six minutes, then cool them right down.", "Ribeye salted and bone dry. Screaming hot heavy pan, one side then the other, then butter and baste. Rest eight minutes.", "Second fry at 190°C until they rattle in the basket. Salt the second they come out, chives over.", "Demi: deglaze the steak pan with red wine, reduce to a syrup, mount with cold butter off the heat.", "Dress the butter lettuce in dijon vinaigrette at the very last second so it doesn't wilt.", "Slice the steak, demi underneath, horseradish and lemon aioli alongside. Baguette and salted butter on the table."],
+      notes: "Two fries or it isn't steak frites. The cooling between them is the whole trick." },
+    { id: "r4", name: "Pork Chop, Burnt Black Honey", style: "refined", minutes: 55, course: "main", guest: true, blurb: "Mustard glaze, celeriac remoulade, pickled green apple, tarragon",
+      ingredients: [{ name: "Pork chop", qty: "2" }, { name: "Honey", qty: "3 tbsp" }, { name: "Dijon mustard", qty: "1 tbsp" }, { name: "Celeriac", qty: "1/2" }, { name: "Green apple", qty: "1" }, { name: "Tarragon", qty: "" }, { name: "Lemon", qty: "" }, { name: "Chives", qty: "" }],
+      steps: ["Brine the chops for an hour if there's time. Then dry them properly.", "Dice the green apple, cover in warm vinegar and sugar, let it cool. It should stay crunchy.", "Celeriac in fine matchsticks, dressed with mustard, mayonnaise, lemon and chives.", "Cook the honey alone until it smokes and turns almost black. Off the heat, whisk in mustard and a splash of vinegar. It will spit.", "Sear the chop on its fat edge first, then flat, basting. Glaze only in the last two minutes or the sugar burns.", "Rest eight minutes. Remoulade, apple, tarragon leaves torn over."],
+      notes: "Take the honey further than you're comfortable with. Bitter is the point." },
+    { id: "r5", name: "Braised Duck Pappardelle", style: "refined", minutes: 180, course: "main", guest: true, blurb: "Red wine, tomato passata, rosemary, parm flakes, calabrian chilli",
+      ingredients: [{ name: "Duck legs", qty: "4" }, { name: "Red wine", qty: "300ml" }, { name: "Tomato passata", qty: "1 jar" }, { name: "Rosemary", qty: "" }, { name: "Basil", qty: "" }, { name: "Calabrian chillies", qty: "1 tsp" }, { name: "Parmesan", qty: "" }, { name: "Pappardelle", qty: "300g" }, { name: "Shallots", qty: "2" }],
+      steps: ["Salt the duck legs and sear them skin down until deeply brown. Take them out, leave the fat.", "Soffritto in that fat until it's sweet, not browned. Rosemary and chilli in.", "Red wine, reduce hard. Passata, duck back in, barely covered. Lid on, 150°C oven, two and a half hours.", "Shred the meat, throw out the bones and skin, then reduce the sauce until it clings to the spoon.", "Pappardelle a minute under, finished in the sauce with a splash of its water.", "Parmesan in flakes, not grated. Basil torn at the table."],
+      notes: "Better on day two. Make it the night before a guest comes." },
+    { id: "r6", name: "Crispy Beef Tallow Baguette", style: "refined", minutes: 45, course: "main", guest: true, blurb: "Striploin, caramelized shallots, rosemary, garlic, tallow fries",
+      ingredients: [{ name: "Striploin", qty: "1" }, { name: "Homemade baguette", qty: "1" }, { name: "Shallots", qty: "4" }, { name: "PEI butter", qty: "" }, { name: "Rosemary", qty: "" }, { name: "Garlic", qty: "2 cloves" }, { name: "Beef tallow", qty: "" }, { name: "Yukon potatoes", qty: "3" }],
+      steps: ["Sliced shallots in butter on low for thirty minutes. There is no shortcut and it will taste like there wasn't one.", "Split the baguette, brush with tallow, rub with garlic and rosemary, crisp cut-side down in a pan.", "Striploin seared hard, rested, sliced thin against the grain.", "Beef on the bread, shallots over, fries alongside while they're still too hot to hold."], notes: "" },
+    { id: "r7", name: "Seared Prime NY Striploin", style: "refined", minutes: 50, course: "main", guest: true, blurb: "Celeriac purée, red wine demi, horseradish, chives",
+      ingredients: [{ name: "Striploin", qty: "2" }, { name: "Celeriac", qty: "1" }, { name: "Heavy cream", qty: "100ml" }, { name: "Red wine", qty: "150ml" }, { name: "Horseradish", qty: "" }, { name: "Chives", qty: "" }, { name: "PEI butter", qty: "" }],
+      steps: ["Celeriac simmered in cream until soft, blended smooth, passed through a sieve if you want it perfect.", "Steak dry and salted an hour ahead. Hard sear, butter baste, rest a full ten minutes.", "Demi from the pan: red wine reduced to a syrup, cold butter whisked in off the heat.", "Purée as a bed, steak sliced over, demi pooled around, horseradish on the side. Chives last."], notes: "" },
+    { id: "r8", name: "Strawberry Choc Blini", style: "refined", minutes: 35, course: "dessert", guest: true, blurb: "Vanilla whip, dark chocolate, macerated strawberries",
+      ingredients: [{ name: "Eggs", qty: "2" }, { name: "Bread flour", qty: "100g" }, { name: "Whole milk", qty: "250ml" }, { name: "Strawberries", qty: "1 punnet" }, { name: "Dark chocolate", qty: "80g" }, { name: "Heavy cream", qty: "150ml" }, { name: "Vanilla", qty: "" }, { name: "PEI butter", qty: "" }],
+      options: [
+        { id: "o1", label: "Filling", multi: false, required: true, choices: [
+          { id: "c1", name: "Dark chocolate", extra: 0 }, { id: "c2", name: "Strawberry jam", extra: 0 }, { id: "c3", name: "Lemon and sugar", extra: 0 }, { id: "c4", name: "Pastry cream", extra: 8 } ] },
+        { id: "o2", label: "On top", multi: true, required: false, choices: [
+          { id: "c5", name: "Vanilla whip", extra: 2 }, { id: "c6", name: "Fresh strawberries", extra: 2 }, { id: "c7", name: "Toasted almonds", extra: 3 }, { id: "c8", name: "Maple syrup", extra: 0 } ] },
+      ],
+      steps: ["Batter made and rested at least twenty minutes, or the crepes tear.", "Strawberries sliced with a little sugar and left to weep while you work.", "Chocolate melted gently, kept just warm enough to drape.", "Cream whipped with vanilla to soft peaks. Stop before it stiffens.", "Thin crepes in butter, folded into quarters, chocolate and strawberries over, a quenelle of whip beside."], notes: "" },
+    { id: "r9", name: "The Skillet", style: "casual", minutes: 20, course: "main", guest: false, blurb: "Turkey bacon, potato, egg, cheddar",
+      ingredients: [{ name: "Turkey bacon", qty: "3 slices" }, { name: "Yukon potatoes", qty: "1/2" }, { name: "Eggs", qty: "1" }, { name: "Shredded cheddar", qty: "handful" }],
+      steps: ["Half a potato in small dice into a hot pan with a little fat. Lid on, eight minutes, until tender and properly browned.", "Chopped turkey bacon in until the edges crisp.", "Push everything to one side, crack the egg into the space, lid on for two minutes.", "Cheddar over the whole pan, lid back on for thirty seconds. Eat it out of the skillet."], notes: "" },
+    { id: "r10", name: "Penne and Meatballs", style: "homey", minutes: 40, course: "main", guest: false, blurb: "Brown rice and lentil penne, homemade meatballs, tomato sauce",
+      ingredients: [{ name: "Brown rice and lentil penne", qty: "1 box" }, { name: "Meatballs", qty: "8" }, { name: "Tomato passata", qty: "1 jar" }, { name: "Garlic", qty: "3 cloves" }, { name: "Basil", qty: "" }, { name: "Parmesan", qty: "" }],
+      steps: ["Meatballs browned all over in a wide pan, then lifted out. They finish in the sauce.", "Garlic in the same fat, passata in, meatballs back, bare simmer twenty minutes.", "Lentil pasta goes from firm to mush in about ninety seconds, so start tasting at six minutes.", "Drain, sauce it in the pan and never in the bowl. Basil and parmesan over."], notes: "" },
+    { id: "r11", name: "Homemade Baguette", style: "homey", minutes: 300, course: "side", guest: false, blurb: "Poolish, long cold proof, steam bake",
+      ingredients: [{ name: "Bread flour", qty: "500g" }, { name: "Yeast", qty: "3g" }, { name: "Salt", qty: "10g" }, { name: "Water", qty: "360ml" }],
+      steps: ["Poolish the night before: equal flour and water, a pinch of yeast, left out until it domes and just starts to fall.", "Mix everything but the salt, rest thirty minutes, then work the salt in.", "Four folds, thirty minutes apart. Then cold in the fridge overnight.", "Divide, pre-shape, bench rest twenty minutes, shape long and tight.", "Proof an hour, score at a shallow angle, into a 240°C oven with steam for twenty minutes.", "Listen to it crackle as it cools. Don't cut it hot."],
+      notes: "Freeze the second portion of dough. It's the same work for twice the bread." },
+    { id: "r12", name: "Sokolatopita", style: "homey", minutes: 70, course: "dessert", guest: false, blurb: "Greek chocolate cake, soaked in cold syrup",
+      ingredients: [{ name: "Dark chocolate", qty: "150g" }, { name: "Eggs", qty: "4" }, { name: "Bread flour", qty: "200g" }, { name: "PEI butter", qty: "150g" }, { name: "Sugar", qty: "200g" }, { name: "Cinnamon", qty: "" }],
+      steps: ["Syrup first: sugar, water, a strip of orange peel and cinnamon, simmered ten minutes, then left to go completely cold.", "Butter and sugar beaten pale, eggs one at a time, melted chocolate, then the dry in three goes.", "Bake at 175°C until a skewer comes out with a crumb or two, about forty minutes.", "Cold syrup over the hot cake, slowly, until it stops drinking.", "It needs four hours before it's right. Overnight is better."],
+      notes: "Hot cake, cold syrup. Never the other way around." },
+  ],
+  drinks: [
+    { id: "d1", name: "Sauvignon Blanc", kind: "wine", note: "Sharp and grassy, poured cold", stock: 2, prep: 2, pairs: ["r1", "r8"] },
+    { id: "d2", name: "Pinot Noir", kind: "wine", note: "Light enough not to bury the duck", stock: 1, prep: 2, pairs: ["r2", "r4"] },
+    { id: "d3", name: "Cabernet Sauvignon", kind: "wine", note: "For anything seared hard and rested", stock: 2, prep: 2, pairs: ["r3", "r7", "r6"] },
+    { id: "d4", name: "Chianti Classico", kind: "wine", note: "Sour cherry against the tomato", stock: 1, prep: 2, pairs: ["r5", "r10"] },
+    { id: "d5", name: "Off-dry Riesling", kind: "wine", note: "Sweetness to meet the burnt honey", stock: 1, prep: 2, pairs: ["r4"] },
+    { id: "d6", name: "Tawny Port", kind: "wine", note: "After dinner, small glass", stock: 1, prep: 2, pairs: ["r12", "r8"] },
+    { id: "d7", name: "Negroni", kind: "cocktail", note: "Bitter opener, stirred over a big cube", stock: 9, prep: 5, pairs: [] },
+    { id: "d8", name: "French 75", kind: "cocktail", note: "Gin, lemon, sparkling", stock: 9, prep: 5, pairs: ["r1"] },
+    { id: "d9", name: "Old Fashioned", kind: "cocktail", note: "Orange peel expressed over the top", stock: 9, prep: 5, pairs: ["r3", "r7"] },
+    { id: "d13", name: "Water", kind: "cold", note: "Still, from the jug", stock: 99, prep: 1, iceable: true, hotable: true, pairs: [] },
+    { id: "d14", name: "Lemon Water", kind: "cold", note: "Fresh lemon", stock: 99, prep: 2, iceable: true, hotable: true, sweeten: true, pairs: [] },
+    { id: "d15", name: "Dr Pepper", kind: "cold", note: "Cold can", stock: 6, prep: 1, iceable: true, pairs: [] },
+    { id: "d16", name: "Tonica Blue Lemonade Kombucha", kind: "cold", note: "Fizzy, tart, faintly floral", stock: 4, prep: 1, iceable: true, pairs: [] },
+    { id: "d17", name: "Toasted Rice Matcha Green Tea", kind: "tea", note: "Genmaicha and matcha, nutty and grassy", stock: 99, prep: 7, iceable: true, sweeten: true, milkable: true, pairs: ["r8"] },
+    { id: "d18", name: "Earl Grey", kind: "tea", note: "Bergamot, steeped four minutes", stock: 99, prep: 5, iceable: true, sweeten: true, milkable: true, pairs: ["r12"] },
+    { id: "d19", name: "London Fog", kind: "tea", note: "Earl grey, vanilla, steamed milk", stock: 99, prep: 8, iceable: true, sweeten: true, milkable: true, defaultMilk: "Whole milk", pairs: ["r8", "r12"] },
+    { id: "d10", name: "Greek Coffee", kind: "tea", note: "Unfiltered, in a briki", stock: 99, prep: 6, sweeten: true, pairs: ["r12"] },
+  ],
+  menu: ["r10", "r9", "r3"],
+  requests: [], history: [], cravings: [],
+});
+
+/* ================= LOGIC ================= */
+const norm = (s) => String(s || "").toLowerCase().trim().replace(/(es|s)$/, "");
+const findItem = (name, inv) => {
+  const n = norm(name); if (!n) return null;
+  return inv.find((i) => { const m = norm(i.name); return m === n || (n.length > 3 && m.includes(n)) || (m.length > 3 && n.includes(m)); });
+};
+const recipeState = (r, inv) => {
+  const missing = r.ingredients.filter((g) => { const h = findItem(g.name, inv); return !h || Number(h.qty) <= 0; }).map((g) => g.name);
+  return { missing, level: missing.length === 0 ? "ready" : missing.length <= 2 ? "shop" : "ahead" };
+};
+const SHOP_LEAD = 120, ICED_LEAD = 120;
+const MILKS = ["Whole milk", "Oat milk", "Almond milk", "Soy milk"];
+const mins = (m) => (m >= 90 ? `${Math.floor(m / 60)} hr${m % 60 ? " " + (m % 60) + " min" : ""}` : `${m} min`);
+const clock = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const styleLabel = { casual: "Casual", homey: "Homey", refined: "Refined" };
+function dishExtras(it, r) {
+  if (!r || !r.options || !it.opts) return { extra: 0, names: [] };
+  let extra = 0; const names = [];
+  r.options.forEach((grp) => {
+    (it.opts[grp.id] || []).forEach((cid) => {
+      const c = grp.choices.find((x) => x.id === cid);
+      if (c) { extra += Number(c.extra) || 0; names.push(c.name); }
+    });
+  });
+  return { extra, names };
+}
+function itemMinutes(it, data) {
+  if (it.type === "dish") {
+    const r = data.recipes.find((x) => x.id === it.id);
+    return (r?.minutes || 0) + dishExtras(it, r).extra;
+  }
+  const d = data.drinks.find((x) => x.id === it.id); if (!d) return 0;
+  return d.prep + (it.opts?.temp === "iced" && d.kind === "tea" ? ICED_LEAD : 0) + (it.opts?.temp === "hot" && d.kind === "cold" ? 3 : 0);
+}
+function cartTotals(cart, data) {
+  const cookSum = cart.reduce((n, it) => n + itemMinutes(it, data), 0);
+  const handling = cart.length;
+  let shop = 0;
+  cart.forEach((it) => {
+    if (it.type !== "dish") return;
+    const r = data.recipes.find((x) => x.id === it.id);
+    if (r && recipeState(r, data.inventory).missing.length) shop = SHOP_LEAD;
+  });
+  const total = cookSum + handling + shop;
+  return { cookSum, handling, shop, total, at: new Date(Date.now() + total * 60000) };
+}
+const describeOpts = (o, d) => {
+  if (!o) return "";
+  const b = [];
+  if (o.temp === "iced") b.push(d?.kind === "tea" ? "iced" : "over ice");
+  if (o.temp === "hot") b.push("hot");
+  if (o.sweet && o.sweet !== "none") b.push(o.sweet);
+  if (o.milk && o.milk !== "none") b.push(o.froth ? `${o.milk.toLowerCase()}, frothed` : o.milk.toLowerCase());
+  return b.join(" · ");
+};
+
+/* ================= SOUND ================= */
+function useChime() {
+  const ctxRef = useRef(null);
+  const unlock = useCallback(() => {
+    if (!ctxRef.current) { const A = window.AudioContext || window.webkitAudioContext; if (A) ctxRef.current = new A(); }
+    if (ctxRef.current && ctxRef.current.state === "suspended") ctxRef.current.resume();
+  }, []);
+  const strike = useCallback((base = 1046, vol = 0.22, decay = 1) => {
+    unlock();
+    const ctx = ctxRef.current; if (!ctx) return;
+    const t = ctx.currentTime;
+    const bus = ctx.createGain(); bus.gain.value = vol; bus.connect(ctx.destination);
+    [[1, 1], [2.02, 0.55], [2.99, 0.34], [4.21, 0.2], [5.43, 0.12], [7.66, 0.07]].forEach(([mul, amp], i) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = base * mul; o.detune.value = i % 2 ? 4 : -4;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay * (2.4 / (1 + i * 0.75)));
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 3.2);
+    });
+    const n = ctx.createBufferSource(); const buf = ctx.createBuffer(1, 1400, ctx.sampleRate); const dat = buf.getChannelData(0);
+    for (let i = 0; i < dat.length; i++) dat[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / dat.length, 7);
+    n.buffer = buf; const ng = ctx.createGain(); ng.gain.value = 0.1;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 3200;
+    n.connect(bp); bp.connect(ng); ng.connect(bus); n.start(t);
+  }, [unlock]);
+  const bell = useCallback(() => { strike(1046, 0.22, 1); setTimeout(() => strike(1568, 0.13, 0.8), 130); }, [strike]);
+  const ping = useCallback(() => { strike(1318, 0.16, 0.7); setTimeout(() => strike(1760, 0.1, 0.55), 155); }, [strike]);
+  return { bell, ping, unlock };
+}
+
+/* ================= CSS ================= */
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@keyframes bb-blink { 0%,92%,100%{transform:scaleY(0)} 94%,98%{transform:scaleY(1)} }
+@keyframes bb-ear { 0%,88%,100%{transform:rotate(0)} 92%{transform:rotate(-7deg)} 96%{transform:rotate(3deg)} }
+@keyframes bb-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+@keyframes bb-glow { 0%,100%{opacity:.35} 50%{opacity:.65} }
+@keyframes bb-swing { 0%{transform:rotate(0)} 15%{transform:rotate(-13deg)} 35%{transform:rotate(10deg)} 55%{transform:rotate(-6deg)} 75%{transform:rotate(3deg)} 100%{transform:rotate(0)} }
+@keyframes bb-ring { 0%{transform:scale(.55);opacity:.85} 100%{transform:scale(1.75);opacity:0} }
+@keyframes bb-fly { 0%{transform:translate(-58%,14%) rotate(-7deg);opacity:0} 30%{opacity:1} 100%{transform:translate(0,0) rotate(0);opacity:1} }
+@keyframes bb-rise { 0%{transform:translateY(14px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+@keyframes bb-drop { 0%{transform:translateY(-130%);opacity:0} 12%{transform:translateY(0);opacity:1} 88%{transform:translateY(0);opacity:1} 100%{transform:translateY(-130%);opacity:0} }
+@keyframes bb-drift { 0%{transform:translate(0,0)} 50%{transform:translate(6px,-8px)} 100%{transform:translate(0,0)} }
+.bb-blink{ animation: bb-blink 6.5s infinite; transform-origin:center }
+.bb-earL{ animation: bb-ear 7.5s infinite; transform-origin:52px 62px }
+.bb-earR{ animation: bb-ear 9.5s infinite .8s; transform-origin:96px 60px }
+.bb-float{ animation: bb-float 4.6s ease-in-out infinite }
+.bb-glow{ animation: bb-glow 3s ease-in-out infinite }
+.bb-swing{ animation: bb-swing 1.05s cubic-bezier(.3,.7,.4,1) }
+.bb-ring{ animation: bb-ring 1s ease-out forwards }
+.bb-fly{ animation: bb-fly 1.5s cubic-bezier(.2,.7,.3,1) both }
+.bb-rise{ animation: bb-rise .5s ease-out both }
+.bb-drop{ animation: bb-drop 5.4s ease-in-out both }
+.bb-drift{ animation: bb-drift 5s ease-in-out infinite }
+@media (prefers-reduced-motion: reduce){ .bb-blink,.bb-earL,.bb-earR,.bb-float,.bb-glow,.bb-swing,.bb-ring,.bb-fly,.bb-rise,.bb-drop,.bb-drift{ animation:none !important } }
+.bb-scroll::-webkit-scrollbar{ height:6px } .bb-scroll::-webkit-scrollbar-thumb{ background:${C.line}; border-radius:3px }
+input, textarea, select, button { font-family: ${F}; }
+`;
+
+/* ================= BACKDROP ================= */
+function Backdrop() {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", background: `linear-gradient(180deg, ${C.bg} 0%, ${C.bgDeep} 60%, #EFC9A8 100%)` }}>
+      <div className="bb-glow" style={{ position: "absolute", left: "50%", bottom: "-10%", width: "120%", height: "60%", transform: "translateX(-50%)", background: `radial-gradient(ellipse at center, rgba(232,174,63,0.32), transparent 70%)`, filter: "blur(10px)" }} />
+      {[[8, 14, 10], [72, 22, 7], [30, 55, 9], [85, 62, 6], [50, 8, 8], [15, 78, 6], [66, 82, 8]].map(([x, y, s], i) => (
+        <div key={i} className="bb-drift" style={{ position: "absolute", left: `${x}%`, top: `${y}%`, width: s, height: s, borderRadius: "50%", background: "rgba(255,236,196,0.65)", animationDelay: `${i * 0.6}s`, animationDuration: `${5 + i}s` }} />
+      ))}
+    </div>
+  );
+}
+
+/* ================= BUNNY ================= */
+function ChefBunny({ size = 110, still }) {
+  const g = useRef("cb" + uid()).current;
+  const A = (cls) => (still ? "" : cls);
+  return (
+    <svg viewBox="0 0 140 168" width={size} height={(size * 168) / 140} aria-hidden="true" className={A("bb-float")}>
+      <defs>
+        <linearGradient id={g + "fur"} x1="0.15" y1="0" x2="0.8" y2="1"><stop offset="0" stopColor="#F3D6AC" /><stop offset="0.55" stopColor="#DFAE6E" /><stop offset="1" stopColor="#C68A48" /></linearGradient>
+        <linearGradient id={g + "belly"} x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stopColor="#FFF6E6" /><stop offset="1" stopColor="#F0DDBB" /></linearGradient>
+        <linearGradient id={g + "hat"} x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#F0E7D6" /></linearGradient>
+        <linearGradient id={g + "heart"} x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stopColor="#F2A7B3" /><stop offset="0.55" stopColor="#D8707F" /><stop offset="1" stopColor="#B24E5E" /></linearGradient>
+        <radialGradient id={g + "cheek"}><stop offset="0" stopColor="#E9909A" stopOpacity="0.6" /><stop offset="1" stopColor="#E9909A" stopOpacity="0" /></radialGradient>
+        <radialGradient id={g + "sh"}><stop offset="0" stopColor="#3A2214" stopOpacity="0.22" /><stop offset="1" stopColor="#3A2214" stopOpacity="0" /></radialGradient>
+      </defs>
+      <ellipse cx="70" cy="162" rx="46" ry="8" fill={`url(#${g}sh)`} />
+      <g stroke={OUT} strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <g className={A("bb-earL")}><path d="M48 56 C39 34 41 12 50 11 C59 10 60 34 58 56 Z" fill={`url(#${g}fur)`} strokeWidth="2" /><path d="M51 50 C46 34 48 20 51 19 C54 18 55 35 55 50 Z" fill="#F2C1C6" stroke="none" /></g>
+        <g className={A("bb-earR")}><path d="M92 56 C101 34 99 12 90 11 C81 10 80 34 82 56 Z" fill={`url(#${g}fur)`} strokeWidth="2" /><path d="M89 50 C94 34 92 20 89 19 C86 18 85 35 85 50 Z" fill="#F2C1C6" stroke="none" /></g>
+        <path d="M70 94 C95 94 106 113 104 133 C102 152 87 161 70 161 C53 161 38 152 36 133 C34 113 45 94 70 94 Z" fill={`url(#${g}fur)`} strokeWidth="2.1" />
+        <path d="M70 107 C85 107 91 120 90 133 C89 147 80 153 70 153 C60 153 51 147 50 133 C49 120 55 107 70 107 Z" fill={`url(#${g}belly)`} stroke="none" />
+        <ellipse cx="70" cy="76" rx="29" ry="26" fill={`url(#${g}fur)`} strokeWidth="2.1" />
+        <path d="M44 68 C50 58 62 53 70 53" stroke="#FCEBD2" strokeWidth="3" opacity="0.8" fill="none" />
+        <ellipse cx="50" cy="85" rx="8" ry="5" fill={`url(#${g}cheek)`} stroke="none" /><ellipse cx="90" cy="85" rx="8" ry="5" fill={`url(#${g}cheek)`} stroke="none" />
+        <g>
+          <ellipse cx="60" cy="75" rx="3.6" ry="5" fill="#3A2620" stroke="none" /><ellipse cx="80" cy="75" rx="3.6" ry="5" fill="#3A2620" stroke="none" />
+          <circle cx="61.4" cy="72.8" r="1.4" fill="#fff" stroke="none" /><circle cx="81.4" cy="72.8" r="1.4" fill="#fff" stroke="none" />
+          <g className={A("bb-blink")}><ellipse cx="60" cy="75" rx="4.6" ry="5.8" fill="#DFAE6E" stroke="none" /><ellipse cx="80" cy="75" rx="4.6" ry="5.8" fill="#DFAE6E" stroke="none" /></g>
+        </g>
+        <path d="M70 84 C67.6 84 66.4 85.6 67.6 86.8 L70 89 L72.4 86.8 C73.6 85.6 72.4 84 70 84 Z" fill="#C1717C" stroke="none" />
+        <path d="M70 89 q-3.6 4.4 -7.4 1.2 M70 89 q3.6 4.4 7.4 1.2" strokeWidth="1.7" />
+        <path d="M41 74 l-13 -5 M41 82 l-14 2 M99 74 l13 -5 M99 82 l14 2" strokeWidth="1.4" opacity="0.7" />
+        {/* heart, held in both paws */}
+        <g transform="translate(70 128)">
+          <path d="M0 -12 C-3 -20 -18 -20 -18 -8 C-18 2 -8 9 0 16 C8 9 18 2 18 -8 C18 -20 3 -20 0 -12 Z" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinejoin="round" />
+          <path d="M0 -12 C-3 -20 -18 -20 -18 -8 C-18 2 -8 9 0 16 C8 9 18 2 18 -8 C18 -20 3 -20 0 -12 Z" fill="none" stroke="#F3D0D4" strokeWidth="3.4" strokeDasharray="0 3.6" strokeLinecap="round" />
+          <path d="M0 -12 C-3 -20 -18 -20 -18 -8 C-18 2 -8 9 0 16 C8 9 18 2 18 -8 C18 -20 3 -20 0 -12 Z" fill="none" stroke="#FFFFFF" strokeWidth="1.2" strokeDasharray="0 3.6" strokeLinecap="round" strokeDashoffset="1.8" />
+          <path d="M0 -10 C-2.5 -16 -14 -16 -14 -7 C-14 1 -6 7 0 12 C6 7 14 1 14 -7 C14 -16 2.5 -16 0 -10 Z" fill={`url(#${g}heart)`} stroke={OUT} strokeWidth="1.4" />
+          <path d="M-9 -9 C-7 -12 -3 -12.5 -1 -10.5" stroke="#FFF1F2" strokeWidth="1.8" strokeLinecap="round" opacity="0.9" />
+          <circle cx="-5.5" cy="-11.5" r="0.9" fill="#FFF1F2" stroke="none" />
+        </g>
+        <ellipse cx="53" cy="130" rx="8" ry="7" fill={`url(#${g}fur)`} strokeWidth="1.9" />
+        <ellipse cx="87" cy="130" rx="8" ry="7" fill={`url(#${g}fur)`} strokeWidth="1.9" />
+      </g>
+    </svg>
+  );
+}
+
+/* ================= BIRD ================= */
+function BirdPost({ size = 250 }) {
+  const g = useRef("bp" + uid()).current;
+  return (
+    <svg viewBox="0 0 230 150" width={size} height={(size * 150) / 230} aria-hidden="true" style={{ maxWidth: "100%" }}>
+      <defs>
+        <linearGradient id={g + "sky"} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF3DE" /><stop offset="1" stopColor="#FBE1C4" /></linearGradient>
+        <linearGradient id={g + "bird"} x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#F6DDA8" /><stop offset="0.55" stopColor="#E8B15A" /><stop offset="1" stopColor="#C98F35" /></linearGradient>
+        <linearGradient id={g + "fur"} x1="0.1" y1="0" x2="0.8" y2="1"><stop offset="0" stopColor="#F3D6AC" /><stop offset="1" stopColor="#C68A48" /></linearGradient>
+        <linearGradient id={g + "box"} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F2B5BC" /><stop offset="1" stopColor="#D6717D" /></linearGradient>
+        <radialGradient id={g + "sun"}><stop offset="0" stopColor="#FFE7B0" stopOpacity="0.95" /><stop offset="1" stopColor="#FFE7B0" stopOpacity="0" /></radialGradient>
+      </defs>
+      <rect x="0" y="0" width="230" height="150" rx="6" fill={`url(#${g}sky)`} />
+      <circle cx="196" cy="32" r="30" fill={`url(#${g}sun)`} /><circle cx="196" cy="32" r="13" fill="#FBCB6B" />
+      <path d="M0 122 C42 112 74 120 108 116 C148 111 178 120 230 114 L230 150 L0 150 Z" fill={C.sageLt} />
+      <path d="M0 130 C50 122 80 130 120 126 C160 122 185 130 230 124 L230 150 L0 150 Z" fill={C.sage} />
+      <g stroke={OUT} strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <g className="bb-fly">
+          <path d="M46 44 C60 27 90 28 99 46 C106 62 94 76 76 76 C58 76 39 64 46 44 Z" fill={`url(#${g}bird)`} strokeWidth="2" />
+          <path d="M56 46 C70 36 89 40 95 53 C84 62 65 59 56 46 Z" fill="#FCEAC6" stroke="none" />
+          <path d="M99 46 l15 5 -15 6 z" fill={C.tomato} strokeWidth="1.6" />
+          <circle cx="89" cy="45" r="2.8" fill="#3A2620" stroke="none" /><circle cx="90.2" cy="43.8" r="1" fill="#fff" stroke="none" />
+          <path d="M46 51 C33 46 24 54 22 64 C34 68 44 62 49 56" fill={`url(#${g}bird)`} strokeWidth="1.8" />
+          <path d="M108 59 q5 13 3 19" strokeWidth="1.4" />
+          <rect x="95" y="78" width="32" height="27" rx="4" fill={`url(#${g}box)`} strokeWidth="2" />
+          <path d="M111 78 v27 M95 91 h32" strokeWidth="1.6" stroke="#FBE3E6" />
+          <path d="M107 78 q4 -10 9 -3 q-5 4 -9 3 z" fill={C.honey} stroke="none" />
+        </g>
+        <g>
+          <path d="M162 74 C155 54 157 38 164 38 C171 38 171 58 169 74 Z" fill={`url(#${g}fur)`} strokeWidth="1.8" />
+          <path d="M184 74 C191 55 189 39 182 39 C175 39 175 58 177 74 Z" fill={`url(#${g}fur)`} strokeWidth="1.8" />
+          <path d="M173 82 C194 82 203 99 201 116 C199 131 189 139 173 139 C157 139 147 131 145 116 C143 99 152 82 173 82 Z" fill={`url(#${g}fur)`} strokeWidth="1.9" />
+          <path d="M164 100 C168 94 178 94 182 100 L182 106 C178 111 168 111 164 106 Z" fill={C.rose} stroke="none" />
+          <ellipse cx="166" cy="97" rx="3.2" ry="4.1" fill="#3A2620" stroke="none" /><ellipse cx="180" cy="97" rx="3.2" ry="4.1" fill="#3A2620" stroke="none" />
+          <circle cx="167" cy="95.6" r="1.2" fill="#fff" stroke="none" /><circle cx="181" cy="95.6" r="1.2" fill="#fff" stroke="none" />
+          <path d="M173 104.5 l-2.4 2.3 h4.8 z" fill="#C1717C" stroke="none" />
+          <ellipse cx="154" cy="105" rx="6" ry="3.6" fill="#E9909A" stroke="none" opacity="0.45" /><ellipse cx="192" cy="105" rx="6" ry="3.6" fill="#E9909A" stroke="none" opacity="0.45" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* ================= MAILBOX ================= */
+function Mailbox({ size = 140, count = 0 }) {
+  const g = useRef("mb" + uid()).current;
+  return (
+    <svg viewBox="0 0 160 145" width={size} height={(size * 145) / 160} aria-hidden="true">
+      <defs>
+        <linearGradient id={g + "b"} x1="0" y1="0" x2="0.55" y2="1"><stop offset="0" stopColor="#8FBAC4" /><stop offset="0.5" stopColor="#6C9BA6" /><stop offset="1" stopColor="#4C7883" /></linearGradient>
+        <linearGradient id={g + "e"} x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#FFFCF4" /><stop offset="1" stopColor="#EEDFC4" /></linearGradient>
+        <linearGradient id={g + "p"} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#B48A61" /><stop offset="1" stopColor="#8C6642" /></linearGradient>
+        <radialGradient id={g + "s"}><stop offset="0" stopColor="#3A2214" stopOpacity="0.3" /><stop offset="1" stopColor="#3A2214" stopOpacity="0" /></radialGradient>
+      </defs>
+      <ellipse cx="80" cy="136" rx="62" ry="9" fill={`url(#${g}s)`} />
+      <g stroke={OUT} strokeLinejoin="round" strokeLinecap="round" fill="none" strokeWidth="1.9">
+        <g transform="rotate(-17 32 118)"><rect x="11" y="104" width="40" height="27" rx="3" fill={`url(#${g}e)`} /><path d="M11 104 l20 14 l20 -14" strokeWidth="1.5" /><path d="M31 118 q-5 -7 0 -9 q5 2 0 9 z" fill={C.rose} stroke="none" /></g>
+        <g transform="rotate(11 56 124)"><rect x="37" y="113" width="40" height="27" rx="3" fill={`url(#${g}e)`} /><path d="M37 113 l20 14 l20 -14" strokeWidth="1.5" /></g>
+        <rect x="72" y="82" width="15" height="54" rx="3" fill={`url(#${g}p)`} />
+        <path d="M61 46 h56 v40 h-56 a20 20 0 0 1 0 -40 z" fill={`url(#${g}b)`} strokeWidth="2.1" />
+        <path d="M61 46 a20 20 0 0 0 0 40 h7 a20 20 0 0 1 0 -40 z" fill="#C5E1E6" stroke="none" opacity="0.55" />
+        <rect x="63" y="61" width="7" height="12" rx="3.5" fill={C.honey} strokeWidth="1.5" />
+        <path d="M117 48 v-25" strokeWidth="2.2" /><path d="M117 23 h19 v13 h-19 z" fill={C.tomato} strokeWidth="1.9" />
+        <g transform="rotate(-24 90 36)"><rect x="73" y="17" width="36" height="25" rx="3" fill={`url(#${g}e)`} /><path d="M73 17 l18 13 l18 -13" strokeWidth="1.5" /><path d="M91 31 q-5 -7 0 -9 q5 2 0 9 z" fill={C.rose} stroke="none" /></g>
+        <g transform="rotate(8 106 34)"><rect x="88" y="19" width="36" height="25" rx="3" fill={`url(#${g}e)`} /><path d="M88 19 l18 13 l18 -13" strokeWidth="1.5" /></g>
+      </g>
+      {count > 0 && (<g><circle cx="136" cy="104" r="16" fill={C.tomato} stroke={OUT} strokeWidth="2" /><text x="136" y="110" textAnchor="middle" fill="#fff" style={{ font: `600 17px ${F}` }}>{count}</text></g>)}
+    </svg>
+  );
+}
+
+/* ================= BELL ================= */
+function ServiceBell({ onRing, disabled, label }) {
+  const g = useRef("bl" + uid()).current;
+  const [ringing, setRinging] = useState(false);
+  const go = () => { if (disabled || ringing) return; setRinging(true); onRing(); setTimeout(() => setRinging(false), 1100); };
+  return (
+    <button onClick={go} disabled={disabled} style={{ width: "100%", background: "transparent", border: "none", padding: 0, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1 }}>
+      <svg viewBox="0 0 300 150" width="100%" style={{ maxWidth: 340, display: "block", margin: "0 auto" }} aria-hidden="true">
+        <defs>
+          <linearGradient id={g + "cloth"} x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stopColor="#FFFBF1" /><stop offset="1" stopColor="#EEDDBE" /></linearGradient>
+          <linearGradient id={g + "brass"} x1="0.05" y1="0" x2="0.95" y2="1"><stop offset="0" stopColor="#FBEFC6" /><stop offset="0.3" stopColor="#E8C171" /><stop offset="0.62" stopColor="#C99A3C" /><stop offset="1" stopColor="#8A6C22" /></linearGradient>
+          <linearGradient id={g + "nap"} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F2B5BC" /><stop offset="1" stopColor="#D6717D" /></linearGradient>
+          <radialGradient id={g + "sh"}><stop offset="0" stopColor="#3A2214" stopOpacity="0.24" /><stop offset="1" stopColor="#3A2214" stopOpacity="0" /></radialGradient>
+        </defs>
+        <ellipse cx="150" cy="120" rx="136" ry="20" fill={`url(#${g}sh)`} />
+        <g stroke={OUT} strokeLinejoin="round" strokeLinecap="round" fill="none" strokeWidth="1.9">
+          <ellipse cx="138" cy="102" rx="56" ry="29" fill={`url(#${g}cloth)`} /><ellipse cx="138" cy="102" rx="41" ry="20" strokeWidth="1.2" opacity="0.5" />
+          <path d="M66 78 v42" /><path d="M61 69 v13 M66 67 v15 M71 69 v13" strokeWidth="1.4" />
+          <path d="M220 120 v-32 q0 -16 8 -19 v51" fill={`url(#${g}cloth)`} />
+          <path d="M230 106 l36 -13 l13 21 l-36 13 z" fill={`url(#${g}nap)`} /><path d="M239 102 l32 -11" strokeWidth="1.3" stroke="#FBE3E6" />
+          {ringing && [0, 1, 2].map((i) => (<g key={i} className="bb-ring" style={{ transformOrigin: "138px 66px", animationDelay: `${i * 0.16}s` }}><ellipse cx="138" cy="66" rx="52" ry="44" stroke={C.goldLt} strokeWidth="1.6" fill="none" opacity="0.7" /></g>))}
+          <g className={ringing ? "bb-swing" : ""} style={{ transformOrigin: "138px 100px" }}>
+            <ellipse cx="138" cy="98" rx="37" ry="9" fill={`url(#${g}brass)`} />
+            <path d="M105 98 C105 66 119 50 138 50 C157 50 171 66 171 98 Z" fill={`url(#${g}brass)`} strokeWidth="2.1" />
+            <path d="M115 94 C115 70 125 58 135 56" stroke="#FBEFC6" strokeWidth="2.8" opacity="0.85" />
+            <path d="M138 50 v-10" strokeWidth="2.4" /><circle cx="138" cy="35" r="8" fill={`url(#${g}brass)`} strokeWidth="2" /><circle cx="135.5" cy="32.5" r="2.4" fill="#FDF4D9" stroke="none" />
+          </g>
+          <path d="M88 40 q8 -10 16 -2 M186 44 q8 -10 16 -2" strokeWidth="1.4" stroke={C.gold} />
+        </g>
+      </svg>
+      <div style={{ font: `500 18px ${F}`, color: C.ink, marginTop: 2, letterSpacing: "0.04em" }}>{label}</div>
+    </button>
+  );
+}
+
+/* ================= FRIDGE ================= */
+function Fridge({ active, onPick, counts }) {
+  const g = useRef("fr" + uid()).current;
+  const fill = (k) => (active === k ? `url(#${g}lit)` : `url(#${g}door)`);
+  return (
+    <svg viewBox="0 0 250 330" width="100%" style={{ maxWidth: 246, display: "block", margin: "0 auto" }}>
+      <defs>
+        <linearGradient id={g + "door"} x1="0" y1="0" x2="1" y2="0.35"><stop offset="0" stopColor="#A9BC90" /><stop offset="0.3" stopColor="#8CA079" /><stop offset="1" stopColor="#6E8259" /></linearGradient>
+        <linearGradient id={g + "lit"} x1="0" y1="0" x2="1" y2="0.35"><stop offset="0" stopColor="#DCE6CB" /><stop offset="1" stopColor="#C7D6B2" /></linearGradient>
+        <linearGradient id={g + "chr"} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FBF6EA" /><stop offset="0.5" stopColor="#DCD3BC" /><stop offset="1" stopColor="#B0A78E" /></linearGradient>
+        <linearGradient id={g + "note"} x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stopColor="#FFFCF2" /><stop offset="1" stopColor="#EEDFC4" /></linearGradient>
+        <radialGradient id={g + "s"}><stop offset="0" stopColor="#3A2214" stopOpacity="0.32" /><stop offset="1" stopColor="#3A2214" stopOpacity="0" /></radialGradient>
+      </defs>
+      <ellipse cx="125" cy="318" rx="104" ry="12" fill={`url(#${g}s)`} />
+      <g stroke={OUT} strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <rect x="44" y="300" width="19" height="15" rx="4" fill="#9C7B57" strokeWidth="2" /><rect x="188" y="300" width="19" height="15" rx="4" fill="#9C7B57" strokeWidth="2" />
+        <g onClick={() => onPick("freezer")} style={{ cursor: "pointer" }}>
+          <path d="M34 36 a23 23 0 0 1 23 -23 h137 a23 23 0 0 1 23 23 v68 h-183 z" fill={fill("freezer")} strokeWidth="2.4" />
+          <path d="M42 36 a16 16 0 0 1 16 -16 h11 v84 h-27 z" fill="#FFFFFF" opacity="0.2" stroke="none" />
+          <rect x="166" y="58" width="12" height="36" rx="6" fill={`url(#${g}chr)`} strokeWidth="2" />
+          <text x="60" y="77" style={{ font: `500 18px ${F}`, letterSpacing: "0.04em" }} fill={C.ink}>Freezer</text>
+        </g>
+        <g onClick={() => onPick("fridge")} style={{ cursor: "pointer" }}>
+          <path d="M34 110 h183 v172 a23 23 0 0 1 -23 23 h-137 a23 23 0 0 1 -23 -23 z" fill={fill("fridge")} strokeWidth="2.4" />
+          <path d="M42 110 h27 v195 h-11 a16 16 0 0 1 -16 -16 z" fill="#FFFFFF" opacity="0.2" stroke="none" />
+          <rect x="166" y="124" width="12" height="36" rx="6" fill={`url(#${g}chr)`} strokeWidth="2" />
+          <text x="48" y="143" style={{ font: `500 18px ${F}`, letterSpacing: "0.04em" }} fill={C.ink}>Fridge</text>
+        </g>
+        <g onClick={() => onPick("orders")} style={{ cursor: "pointer" }} transform="translate(48 162) rotate(-4)">
+          <rect x="0" y="0" width="52" height="37" rx="3" fill={active === "orders" ? C.goldLt : `url(#${g}note)`} strokeWidth="1.9" />
+          <path d="M0 0 l26 18 l26 -18" strokeWidth="1.5" /><path d="M26 16 q-5 -8 0 -10 q5 2 0 10 z" fill={C.rose} stroke="none" />
+          {counts.orders > 0 && (<><circle cx="52" cy="1" r="10.5" fill={C.tomato} strokeWidth="1.7" /><text x="52" y="5.5" textAnchor="middle" fill="#fff" style={{ font: `600 12px ${F}` }}>{counts.orders}</text></>)}
+        </g>
+        <g onClick={() => onPick("recipes")} style={{ cursor: "pointer" }} transform="translate(124 160) rotate(5)">
+          <rect x="0" y="0" width="48" height="44" rx="3" fill={active === "recipes" ? C.goldLt : `url(#${g}note)`} strokeWidth="1.9" />
+          <path d="M7 12 h34 M6 22 h36 M7 32 h27" strokeWidth="1.5" opacity="0.65" />
+        </g>
+        <g onClick={() => onPick("cellar")} style={{ cursor: "pointer" }} transform="translate(62 220)">
+          <path d="M8 42 v-17 q0 -6 5 -9 v-10 h11 v10 q5 3 5 9 v17 a3 3 0 0 1 -3 3 h-15 a3 3 0 0 1 -3 -3 z" fill={active === "cellar" ? C.goldLt : C.roseDeep} strokeWidth="1.9" />
+          <path d="M8 28 h21" strokeWidth="1.5" />
+        </g>
+        <g onClick={() => onPick("week")} style={{ cursor: "pointer" }} transform="translate(124 222)">
+          <rect x="0" y="5" width="50" height="40" rx="3" fill={active === "week" ? C.goldLt : `url(#${g}note)`} strokeWidth="1.9" />
+          <path d="M0 18 h50" strokeWidth="1.6" /><path d="M13 5 v-7 M37 5 v-7" strokeWidth="2.1" />
+          <circle cx="14" cy="31" r="3" fill={C.tomato} stroke="none" /><circle cx="26" cy="31" r="3" fill={C.sageDeep} stroke="none" /><circle cx="38" cy="31" r="3" fill={C.gold} stroke="none" />
+        </g>
+        <path d="M196 184 q-6 -12 0 -14 q6 3 0 14 z" fill={C.rose} stroke="none" />
+        <circle cx="198" cy="248" r="8" fill={C.honey} strokeWidth="1.7" />
+      </g>
+    </svg>
+  );
+}
+
+/* ================= FRAME & ATOMS ================= */
+function Corner({ style }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 26 26" style={{ position: "absolute", ...style }} aria-hidden="true">
+      <path d="M2 24 C2 12 12 2 24 2" stroke={C.gold} strokeWidth="1" fill="none" opacity="0.8" />
+      <path d="M13 13 l1.5 3.2 3.2 1.5 -3.2 1.5 -1.5 3.2 -1.5 -3.2 -3.2 -1.5 3.2 -1.5 z" fill={C.gold} opacity="0.85" />
+    </svg>
+  );
+}
+function Panel({ children, style, ornate }) {
+  return (
+    <div style={{ position: "relative", background: C.parch, border: `1px solid ${C.line}`, borderRadius: 4, padding: 6, boxShadow: "0 14px 36px rgba(70,48,42,0.14)", ...style }}>
+      <div style={{ border: `1px solid ${C.gold}`, borderRadius: 2, padding: ornate ? "26px 20px" : "18px 16px", position: "relative" }}>
+        {ornate && <><Corner style={{ top: 4, left: 4 }} /><Corner style={{ top: 4, right: 4, transform: "scaleX(-1)" }} /><Corner style={{ bottom: 4, left: 4, transform: "scaleY(-1)" }} /><Corner style={{ bottom: 4, right: 4, transform: "scale(-1)" }} /></>}
+        {children}
+      </div>
+    </div>
+  );
+}
+const Divider = ({ w = 54 }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, margin: "12px 0" }}>
+    <span style={{ height: 1, width: w, background: `linear-gradient(90deg,transparent,${C.line})` }} />
+    <svg width="10" height="10" viewBox="0 0 12 12"><path d="M6 0 l1.6 4.4 4.4 1.6 -4.4 1.6 -1.6 4.4 -1.6 -4.4 -4.4 -1.6 4.4 -1.6 z" fill={C.gold} /></svg>
+    <span style={{ height: 1, width: w, background: `linear-gradient(270deg,transparent,${C.line})` }} />
+  </div>
+);
+const Btn = ({ children, onClick, tone = "solid", small, style, disabled }) => (
+  <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
+    font: `500 ${small ? 16 : 18}px ${F}`, letterSpacing: "0.02em", padding: small ? "8px 16px" : "12px 24px", borderRadius: 10,
+    cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1,
+    border: tone === "solid" ? `1px solid ${OUT}` : tone === "danger" ? `1px solid ${C.roseDeep}` : `1px solid ${C.line}`,
+    background: tone === "solid" ? `linear-gradient(180deg,${C.tomato},${C.tomatoDeep})` : tone === "quiet" ? C.parchWell : "transparent",
+    color: tone === "solid" ? "#fff" : tone === "danger" ? C.roseDeep : C.ink, ...style,
+  }}>{children}</button>
+);
+const Chip = ({ children, onClick, active }) => (
+  <button onClick={onClick} style={{
+    font: `500 16px ${F}`, padding: "8px 16px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap",
+    border: `1px solid ${active ? OUT : C.line}`, background: active ? `linear-gradient(180deg,${C.sage},${C.sageDeep})` : C.parch, color: active ? "#fff" : C.soft,
+  }}>{children}</button>
+);
+const Field = (p) => (
+  <input {...p} style={{ font: `17px ${F}`, padding: "11px 14px", borderRadius: 8, border: `1px solid ${C.line}`, background: "#FFFDF8", color: C.ink, width: "100%", boxSizing: "border-box", ...p.style }} />
+);
+const stepBtn = { width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.line}`, background: C.parch, color: C.ink, font: `500 18px ${F}`, cursor: "pointer", flexShrink: 0 };
+const roundBtn = { width: 30, height: 30, borderRadius: 15, border: `1px solid ${C.line}`, background: C.parch, color: C.ink, font: `500 18px ${F}`, cursor: "pointer", display: "grid", placeItems: "center", padding: 0, lineHeight: 1 };
+const Title = ({ children, size = 28 }) => <div style={{ font: `400 ${size}px/1.15 ${F}`, color: C.ink, textAlign: "center", letterSpacing: "0.01em" }}>{children}</div>;
+const Sub = ({ children }) => <div style={{ font: `italic 16px/1.6 ${F}`, color: C.soft, textAlign: "center" }}>{children}</div>;
+const Caps = ({ children, style }) => <div style={{ font: `500 13px ${F}`, letterSpacing: "0.16em", textTransform: "uppercase", color: C.soft, ...style }}>{children}</div>;
+
+/* ================= APP ================= */
+function App() {
+  const [data, setData] = useState(null);
+  const [who, setWho] = useState(null);
+  const timer = useRef(null);
+  const sound = useChime();
+
+  useEffect(() => { (async () => { const raw = await store.get(); let d = null; try { d = raw ? JSON.parse(raw) : null; } catch {} setData(d || seed()); })(); }, []);
+
+  const update = (fn) => setData((prev) => {
+    const next = typeof fn === "function" ? fn(prev) : fn;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => store.set(JSON.stringify(next)), 400);
+    return next;
+  });
+
+  return (
+    <>
+      <style>{CSS}</style>
+      <Backdrop />
+      <div style={{ position: "relative", zIndex: 1, minHeight: 700, padding: "18px 14px 44px", fontFamily: F, color: C.ink, fontSize: 17, lineHeight: 1.5 }}>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          {!data && <Panel><Sub>Warming the kitchen…</Sub></Panel>}
+          {data && !who && <Gate data={data} onIn={(w) => { sound.unlock(); setWho(w); }} />}
+          {data && who === "mayu" && <Cook data={data} update={update} setData={setData} out={() => setWho(null)} sound={sound} />}
+          {data && (who === "bran" || who === "guest") && <Diner data={data} update={update} out={() => setWho(null)} mode={who} sound={sound} />}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Gate({ data, onIn }) {
+  const [name, setName] = useState("mayu");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  /* clear the field the moment the page is backgrounded or loses focus */
+  useEffect(() => {
+    const wipe = () => setPw("");
+    const onVis = () => { if (document.hidden) wipe(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("blur", wipe);
+    window.addEventListener("pagehide", wipe);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("blur", wipe); window.removeEventListener("pagehide", wipe); };
+  }, []);
+  const go = () => (pw === data.passwords[name] ? onIn(name) : setErr("That password doesn't open this door."));
+  return (
+    <div className="bb-rise">
+      <div style={{ textAlign: "center", marginBottom: 6 }}><ChefBunny size={168} /></div>
+      <Panel ornate>
+        <Title size={36}>Bistro 309</Title>
+        <Divider />
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", margin: "6px 0 16px" }}>
+          {[["mayu", "Mayu"], ["bran", "Bran"], ["guest", "Guest"]].map(([k, l]) => <Chip key={k} active={name === k} onClick={() => { setName(k); setErr(""); }}>{l}</Chip>)}
+        </div>
+        <div style={{ maxWidth: 300, margin: "0 auto", display: "grid", gap: 10 }}>
+          <Field type="password" inputMode="text" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+            placeholder="Password" value={pw}
+            onChange={(e) => { setPw(e.target.value); setErr(""); }}
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            style={{ WebkitTextSecurity: "disc", textSecurity: "disc" }} />
+          <Btn onClick={go}>Log in</Btn>
+          {err && <div style={{ font: `16px ${F}`, color: C.tomato, textAlign: "center" }}>{err}</div>}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function Bar({ label, out }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ width: 54, flexShrink: 0 }}><ChefBunny size={54} /></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ font: `400 22px/1.1 ${F}`, color: C.ink }}>Bistro 309</div>
+        <Caps>{label}</Caps>
+      </div>
+      <Btn small tone="ghost" onClick={out}>Log out</Btn>
+    </div>
+  );
+}
+
+/* ================= COOK ================= */
+function Cook({ data, update, setData, out, sound }) {
+  const [section, setSection] = useState("orders");
+  const [cooking, setCooking] = useState(null);
+  const [note, setNote] = useState(null);
+  const seen = useRef(new Set(data.requests.map((r) => r.id)));
+  const seenCravings = useRef(new Set(data.cravings.map((c) => c.id)));
+  const openCount = data.requests.filter((r) => !r.done).length + data.cravings.filter((c) => !c.done).length;
+
+  useEffect(() => {
+    let alive = true;
+    const iv = setInterval(async () => {
+      try {
+        const raw = await store.get(); if (!raw || !alive) return;
+        const remote = JSON.parse(raw);
+        const fresh = (remote.requests || []).filter((r) => !seen.current.has(r.id));
+        const freshCr = (remote.cravings || []).filter((c) => !seenCravings.current.has(c.id));
+        if (!fresh.length && !freshCr.length) return;
+        fresh.forEach((r) => seen.current.add(r.id)); freshCr.forEach((c) => seenCravings.current.add(c.id));
+        setData((p) => ({ ...p, requests: remote.requests, cravings: remote.cravings, history: remote.history }));
+        const first = fresh[0];
+        const label = first ? (first.recipeId ? remote.recipes.find((x) => x.id === first.recipeId)?.name : remote.drinks.find((x) => x.id === first.drinkId)?.name) : `Craving: ${freshCr[0].text}`;
+        setNote({ who: first ? (first.from === "guest" ? `Guest${first.guestName ? " · " + first.guestName : ""}` : "Bran") : "Bran", body: fresh.length > 1 ? `${label} and ${fresh.length - 1} more` : label, when: first?.whenLabel || "" });
+        sound.ping();
+        setTimeout(() => setNote(null), 5400);
+      } catch {}
+    }, 6000);
+    return () => { alive = false; clearInterval(iv); };
+  }, []);
+
+  const titles = { freezer: "Freezer", fridge: "Fridge & Pantry", orders: "Mailbox", recipes: "Recipe Book", cellar: "Cellar & Bar", week: "This Week" };
+  return (
+    <div>
+      {note && (
+        <div className="bb-drop" style={{ position: "fixed", top: 12, left: 12, right: 12, zIndex: 90, maxWidth: 532, margin: "0 auto", background: "#FFFCF6", border: `1px solid ${C.gold}`, borderRadius: 16, padding: "12px 14px", display: "flex", gap: 11, alignItems: "center", boxShadow: "0 12px 30px rgba(70,48,42,0.26)" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: C.blush, display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}><ChefBunny size={44} still /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ font: `500 17px ${F}`, color: C.ink }}>New from {note.who}</div>
+            <div style={{ font: `15px ${F}`, color: C.soft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.body}{note.when ? ` — ${note.when}` : ""}</div>
+          </div>
+          <Btn small tone="ghost" onClick={() => { setNote(null); setSection("orders"); }}>Open</Btn>
+        </div>
+      )}
+      <Bar label="Kitchen" out={out} />
+      <Fridge active={section} onPick={setSection} counts={{ orders: openCount }} />
+      <Sub>Tap a door or magnet</Sub>
+      <Panel style={{ marginTop: 14 }}>
+        <Title size={26}>{titles[section]}</Title>
+        <Divider w={40} />
+        {section === "freezer" && <Stores data={data} update={update} locs={["freezer"]} />}
+        {section === "fridge" && <Stores data={data} update={update} locs={["fridge", "pantry"]} />}
+        {section === "orders" && <Post data={data} update={update} />}
+        {section === "recipes" && <Book data={data} update={update} cook={setCooking} />}
+        {section === "cellar" && <Cellar data={data} update={update} />}
+        {section === "week" && <Week data={data} update={update} />}
+      </Panel>
+      {cooking && <CookMode recipe={cooking} close={() => setCooking(null)} />}
+    </div>
+  );
+}
+
+function Stores({ data, update, locs }) {
+  const [adding, setAdding] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const setQty = (id, d) => update((p) => ({ ...p, inventory: p.inventory.map((i) => i.id === id ? { ...i, qty: Math.max(0, Number(i.qty) + d) } : i) }));
+  const remove = (id) => update((p) => ({ ...p, inventory: p.inventory.filter((i) => i.id !== id) }));
+  const soon = data.inventory.filter((i) => locs.includes(i.loc) && i.fresh <= 2);
+  return (
+    <div>
+      {soon.length > 0 && <div style={{ background: C.goldLt, borderRadius: 8, padding: "10px 14px", marginBottom: 14, font: `16px/1.5 ${F}` }}><span style={{ fontStyle: "italic" }}>Use today:</span> {soon.map((i) => i.name).join(", ")}</div>}
+      {locs.map((loc) => (
+        <div key={loc} style={{ marginBottom: 18 }}>
+          {locs.length > 1 && <Caps style={{ marginBottom: 8 }}>{loc}</Caps>}
+          <div style={{ display: "grid", gap: 10 }}>
+            {data.inventory.filter((i) => i.loc === loc).map((i) => (
+              <div key={i.id} style={{ borderBottom: `1px solid ${C.hair}`, paddingBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ font: `500 18px ${F}` }}>{i.name}</div>
+                    <div style={{ font: `15px ${F}`, color: i.fresh <= 2 ? C.tomato : C.soft }}>{i.fresh <= 2 ? "Use today" : `${i.fresh} days left`}</div>
+                  </div>
+                  <button onClick={() => setQty(i.id, -1)} style={stepBtn}>–</button>
+                  <div style={{ font: `500 15px ${F}`, minWidth: 62, textAlign: "center" }}>{i.qty} {i.unit}</div>
+                  <button onClick={() => setQty(i.id, 1)} style={stepBtn}>+</button>
+                  <button onClick={() => setEditing(editing === i.id ? null : i.id)} style={{ ...stepBtn, color: C.soft, font: `italic 15px ${F}` }}>✎</button>
+                  <button onClick={() => remove(i.id)} style={{ ...stepBtn, color: C.soft }}>×</button>
+                </div>
+                {i.reheat && editing !== i.id && <div style={{ font: `italic 15px/1.5 ${F}`, color: C.soft, marginTop: 6 }}>{i.reheat}</div>}
+                {editing === i.id && <ItemForm loc={loc} initial={i} onDone={(item) => { update((p) => ({ ...p, inventory: p.inventory.map((x) => x.id === i.id ? { ...x, ...item, id: i.id } : x) })); setEditing(null); }} cancel={() => setEditing(null)} />}
+              </div>
+            ))}
+          </div>
+          {adding === loc ? <ItemForm loc={loc} onDone={(item) => { update((p) => ({ ...p, inventory: [...p.inventory, item] })); setAdding(null); }} cancel={() => setAdding(null)} /> : <Btn small tone="quiet" onClick={() => setAdding(loc)} style={{ marginTop: 12 }}>Add to {loc}</Btn>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ItemForm({ loc, onDone, cancel, initial }) {
+  const [f, setF] = useState(initial ? { name: initial.name, qty: initial.qty, unit: initial.unit, cat: initial.cat, fresh: initial.fresh, reheat: initial.reheat || "" } : { name: "", qty: 1, unit: "ea", cat: "produce", fresh: 7, reheat: "" });
+  const set = (k, v) => setF({ ...f, [k]: v });
+  return (
+    <div style={{ display: "grid", gap: 10, background: C.parchWell, padding: 14, borderRadius: 10, marginTop: 12 }}>
+      <Field placeholder="Name" value={f.name} onChange={(e) => set("name", e.target.value)} />
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <Field type="number" value={f.qty} onChange={(e) => set("qty", e.target.value)} style={{ width: 74 }} />
+        <Field placeholder="unit" value={f.unit} onChange={(e) => set("unit", e.target.value)} style={{ width: 84 }} />
+        <Field type="number" value={f.fresh} onChange={(e) => set("fresh", e.target.value)} style={{ width: 74 }} />
+        <span style={{ font: `15px ${F}`, color: C.soft }}>days</span>
+      </div>
+      <select value={f.cat} onChange={(e) => set("cat", e.target.value)} style={{ font: `17px ${F}`, padding: 11, borderRadius: 8, border: `1px solid ${C.line}`, background: "#FFFDF8", color: C.ink }}>
+        {["produce", "dairy", "meat", "grain", "spice", "sauce", "frozen", "premade", "homemade"].map((c) => <option key={c}>{c}</option>)}
+      </select>
+      {loc === "freezer" && <Field placeholder="Reheating instructions" value={f.reheat} onChange={(e) => set("reheat", e.target.value)} />}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn small onClick={() => f.name.trim() && onDone({ ...f, id: initial ? initial.id : uid(), loc, qty: Number(f.qty), fresh: Number(f.fresh) })}>{initial ? "Save" : "Add"}</Btn>
+        <Btn small tone="ghost" onClick={cancel}>Cancel</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Post({ data, update }) {
+  const [copied, setCopied] = useState(false);
+  const open = data.requests.filter((r) => !r.done);
+  const cravings = data.cravings.filter((c) => !c.done);
+  const rec = (id) => data.recipes.find((r) => r.id === id);
+  const dr = (id) => data.drinks.find((d) => d.id === id);
+  const from = (r) => (r.from === "guest" ? `Guest${r.guestName ? " · " + r.guestName : ""}` : "Bran");
+  const line = (r) => (r.recipeId ? rec(r.recipeId)?.name : dr(r.drinkId)?.name);
+  const shopping = useMemo(() => { const s = new Set(); open.forEach((r) => { const R = r.recipeId && rec(r.recipeId); if (R) recipeState(R, data.inventory).missing.forEach((m) => s.add(m)); }); return [...s]; }, [data.requests, data.inventory]);
+  const summary = () => open.map((r) => `· ${from(r)}: ${line(r)}${r.custom ? ` (${r.custom})` : ""} — ${r.whenLabel}`).join("\n") + (shopping.length ? `\n\nShopping: ${shopping.join(", ")}` : "") + (cravings.length ? `\n\nCravings:\n${cravings.map((c) => "· " + c.text).join("\n")}` : "");
+
+  if (!open.length && !cravings.length) return <div style={{ textAlign: "center" }}><Mailbox size={150} /><Sub>No orders yet.</Sub></div>;
+  return (
+    <div>
+      <div style={{ textAlign: "center", marginBottom: 12 }}><Mailbox size={140} count={open.length + cravings.length} /></div>
+      {shopping.length > 0 && (
+        <div style={{ background: C.blush, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
+          <Caps style={{ color: C.roseDeep, marginBottom: 2 }}>To buy</Caps>
+          <div style={{ font: `17px/1.5 ${F}` }}>{shopping.join(", ")}</div>
+        </div>
+      )}
+      <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+        {open.map((r) => (
+          <div key={r.id} className="bb-rise" style={{ background: r.from === "guest" ? C.blush : C.parchWell, borderRadius: 10, padding: 13, display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: `500 18px ${F}` }}>{line(r)}</div>
+              {r.custom && <div style={{ font: `italic 15px ${F}`, color: C.roseDeep }}>{r.custom}</div>}
+              <div style={{ font: `15px ${F}`, color: C.soft }}>{from(r)} · {r.whenLabel}{r.note ? ` · ${r.note}` : ""}</div>
+            </div>
+            <Btn small tone="ghost" onClick={() => update((p) => ({ ...p, requests: p.requests.map((x) => x.id === r.id ? { ...x, done: true } : x) }))}>Done</Btn>
+          </div>
+        ))}
+      </div>
+      {cravings.length > 0 && (<>
+        <Caps style={{ marginBottom: 8 }}>Cravings</Caps>
+        <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+          {cravings.map((c) => (
+            <div key={c.id} style={{ background: C.parchWell, border: `1px dashed ${C.roseDeep}`, borderRadius: 10, padding: 13, display: "flex", gap: 10 }}>
+              <div style={{ flex: 1, font: `italic 17px/1.5 ${F}` }}>{c.text}</div>
+              <Btn small tone="ghost" onClick={() => update((p) => ({ ...p, cravings: p.cravings.map((x) => x.id === c.id ? { ...x, done: true } : x) }))}>Clear</Btn>
+            </div>
+          ))}
+        </div>
+      </>)}
+      <Btn small tone="quiet" onClick={() => { navigator.clipboard?.writeText(summary()); setCopied(true); setTimeout(() => setCopied(false), 1600); }}>{copied ? "Copied" : "Copy orders"}</Btn>
+    </div>
+  );
+}
+
+function Book({ data, update, cook }) {
+  const [openId, setOpenId] = useState(null);
+  const [writing, setWriting] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [confirmId, setConfirmId] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const list = data.recipes.filter((r) => filter === "all" || (filter === "guest" ? r.guest : r.style === filter));
+  const del = (id) => { update((p) => ({ ...p, recipes: p.recipes.filter((x) => x.id !== id), menu: p.menu.filter((m) => m !== id) })); setConfirmId(null); setOpenId(null); };
+  return (
+    <div>
+      <div className="bb-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 14 }}>
+        {[["all", "All"], ["guest", "Guest menu"], ["refined", "Refined"], ["homey", "Homey"], ["casual", "Casual"]].map(([k, l]) => <Chip key={k} active={filter === k} onClick={() => setFilter(k)}>{l}</Chip>)}
+      </div>
+      {writing ? <RecipeForm onSave={(r) => { update((p) => ({ ...p, recipes: [...p.recipes, r] })); setWriting(false); }} cancel={() => setWriting(false)} /> : <Btn small tone="quiet" onClick={() => setWriting(true)} style={{ marginBottom: 14 }}>New recipe</Btn>}
+      <div style={{ display: "grid", gap: 10 }}>
+        {list.map((r) => {
+          const st = recipeState(r, data.inventory);
+          const isOpen = openId === r.id;
+          const pairs = data.drinks.filter((d) => d.pairs.includes(r.id));
+          return (
+            <div key={r.id} style={{ border: `1px solid ${C.hair}`, borderRadius: 10, background: C.parchWell, overflow: "hidden" }}>
+              <button onClick={() => { setOpenId(isOpen ? null : r.id); setConfirmId(null); }} style={{ width: "100%", textAlign: "left", padding: 14, background: "transparent", border: "none", cursor: "pointer", color: C.ink }}>
+                <div style={{ font: `500 19px ${F}` }}>{r.name}</div>
+                <div style={{ font: `15px ${F}`, color: C.soft, marginTop: 2 }}>{styleLabel[r.style]} · {mins(r.minutes)}{st.missing.length ? ` · missing ${st.missing.length}` : ""}</div>
+              </button>
+              {isOpen && editId === r.id && (
+                <div style={{ padding: "0 14px 14px" }}>
+                  <RecipeForm initial={r} onSave={(nr) => { update((p) => ({ ...p, recipes: p.recipes.map((x) => x.id === r.id ? nr : x) })); setEditId(null); }} cancel={() => setEditId(null)} />
+                </div>
+              )}
+              {isOpen && editId !== r.id && (
+                <div style={{ padding: "0 14px 14px" }}>
+                  <div style={{ font: `17px/1.75 ${F}`, marginBottom: 10 }}>
+                    {r.ingredients.map((i, n) => { const have = !!findItem(i.name, data.inventory); return <div key={n} style={{ color: have ? C.ink : C.tomato }}>{i.qty ? i.qty + " " : ""}{i.name}{have ? "" : " — to buy"}</div>; })}
+                  </div>
+                  {r.options && r.options.length > 0 && (
+                    <div style={{ marginBottom: 10 }}>
+                      {r.options.map((grp) => (
+                        <div key={grp.id} style={{ font: `16px/1.6 ${F}`, color: C.soft }}>
+                          <span style={{ color: C.ink }}>{grp.label}:</span> {grp.choices.map((c) => c.name).join(", ")}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {pairs.length > 0 && <div style={{ font: `italic 16px ${F}`, color: C.roseDeep, marginBottom: 10 }}>Pairs: {pairs.map((p) => p.name).join(", ")}</div>}
+                  {r.notes && <div style={{ font: `italic 16px/1.6 ${F}`, color: C.soft, marginBottom: 10 }}>{r.notes}</div>}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Btn small onClick={() => cook(r)}>Cook</Btn>
+                    <Btn small tone="ghost" onClick={() => setEditId(r.id)}>Edit</Btn>
+                    <Btn small tone="ghost" onClick={() => update((p) => ({ ...p, recipes: p.recipes.map((x) => x.id === r.id ? { ...x, guest: !x.guest } : x) }))}>{r.guest ? "Hide from guests" : "Show to guests"}</Btn>
+                    {confirmId === r.id ? <Btn small tone="danger" onClick={() => del(r.id)}>Confirm delete</Btn> : <Btn small tone="ghost" onClick={() => setConfirmId(r.id)} style={{ color: C.soft }}>Delete</Btn>}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RecipeForm({ onSave, cancel, initial }) {
+  const [f, setF] = useState(initial ? {
+    name: initial.name, blurb: initial.blurb || "", style: initial.style, minutes: initial.minutes, course: initial.course || "main", guest: !!initial.guest,
+    ing: initial.ingredients.map((i) => (i.qty ? i.qty + " " : "") + i.name).join("\n"), steps: initial.steps.join("\n"), notes: initial.notes || "",
+  } : { name: "", blurb: "", style: "homey", minutes: 30, course: "main", guest: false, ing: "", steps: "", notes: "" });
+  const [opts, setOpts] = useState(initial && initial.options ? JSON.parse(JSON.stringify(initial.options)) : []);
+  const addGroup = () => setOpts([...opts, { id: uid(), label: "", multi: false, required: false, choices: [{ id: uid(), name: "", extra: 0 }] }]);
+  const setGroup = (gi, patch) => setOpts(opts.map((g, i) => (i === gi ? { ...g, ...patch } : g)));
+  const setChoice = (gi, ci, patch) => setOpts(opts.map((g, i) => (i === gi ? { ...g, choices: g.choices.map((c, j) => (j === ci ? { ...c, ...patch } : c)) } : g)));
+  const addChoice = (gi) => setOpts(opts.map((g, i) => (i === gi ? { ...g, choices: [...g.choices, { id: uid(), name: "", extra: 0 }] } : g)));
+  const delChoice = (gi, ci) => setOpts(opts.map((g, i) => (i === gi ? { ...g, choices: g.choices.filter((_, j) => j !== ci) } : g)));
+  const delGroup = (gi) => setOpts(opts.filter((_, i) => i !== gi));
+  const set = (k, v) => setF({ ...f, [k]: v });
+  const ta = { font: `17px/1.6 ${F}`, padding: 12, borderRadius: 8, border: `1px solid ${C.line}`, background: "#FFFDF8", color: C.ink, width: "100%", boxSizing: "border-box", minHeight: 88 };
+  return (
+    <div style={{ background: C.parchWell, borderRadius: 10, padding: 14, marginBottom: 14, display: "grid", gap: 10 }}>
+      <Field placeholder="Dish name" value={f.name} onChange={(e) => set("name", e.target.value)} />
+      <Field placeholder="Short description" value={f.blurb} onChange={(e) => set("blurb", e.target.value)} />
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        {["casual", "homey", "refined"].map((s) => <Chip key={s} active={f.style === s} onClick={() => set("style", s)}>{styleLabel[s]}</Chip>)}
+        {["main", "dessert", "side"].map((s) => <Chip key={s} active={f.course === s} onClick={() => set("course", s)}>{s}</Chip>)}
+        <Field type="number" value={f.minutes} onChange={(e) => set("minutes", e.target.value)} style={{ width: 78 }} />
+      </div>
+      <Chip active={f.guest} onClick={() => set("guest", !f.guest)}>{f.guest ? "On guest menu" : "Household only"}</Chip>
+      <textarea style={ta} placeholder={"Ingredients, one per line\n4 duck legs\n300ml red wine"} value={f.ing} onChange={(e) => set("ing", e.target.value)} />
+      <textarea style={ta} placeholder="Steps, one per line" value={f.steps} onChange={(e) => set("steps", e.target.value)} />
+      <Field placeholder="Cook's note (optional)" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+
+      <div style={{ borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <Caps>Variants</Caps>
+          <span style={{ font: `italic 14px ${F}`, color: C.soft }}>fillings, toppings, sides</span>
+        </div>
+        {opts.length === 0 && <div style={{ font: `italic 15px/1.5 ${F}`, color: C.soft, margin: "6px 0 10px" }}>None. Add a group like "Filling" or "On top" and list what can be chosen.</div>}
+        {opts.map((grp, gi) => (
+          <div key={grp.id} style={{ background: "#FFFDF8", border: `1px solid ${C.hair}`, borderRadius: 8, padding: 12, marginTop: 10, display: "grid", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Field placeholder="Group name, e.g. Filling" value={grp.label} onChange={(e) => setGroup(gi, { label: e.target.value })} />
+              <button onClick={() => delGroup(gi)} style={{ ...stepBtn, color: C.soft }}>×</button>
+            </div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              <Chip active={grp.multi} onClick={() => setGroup(gi, { multi: !grp.multi })}>{grp.multi ? "Choose any number" : "Choose one"}</Chip>
+              <Chip active={grp.required} onClick={() => setGroup(gi, { required: !grp.required })}>{grp.required ? "Required" : "Optional"}</Chip>
+            </div>
+            {grp.choices.map((c, ci) => (
+              <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Field placeholder="Choice" value={c.name} onChange={(e) => setChoice(gi, ci, { name: e.target.value })} />
+                <Field type="number" placeholder="0" value={c.extra} onChange={(e) => setChoice(gi, ci, { extra: e.target.value })} style={{ width: 70 }} />
+                <span style={{ font: `14px ${F}`, color: C.soft, whiteSpace: "nowrap" }}>+min</span>
+                <button onClick={() => delChoice(gi, ci)} style={{ ...stepBtn, color: C.soft }}>×</button>
+              </div>
+            ))}
+            <Btn small tone="ghost" onClick={() => addChoice(gi)}>Add a choice</Btn>
+          </div>
+        ))}
+        <Btn small tone="quiet" onClick={addGroup} style={{ marginTop: 10 }}>Add a variant group</Btn>
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn small onClick={() => {
+          if (!f.name.trim()) return;
+          const ingredients = f.ing.split("\n").filter((l) => l.trim()).map((l) => { const m = l.trim().match(/^([\d./]+\s*[a-zA-Z]*\.?)\s+(.*)$/); return m ? { qty: m[1], name: m[2] } : { qty: "", name: l.trim() }; });
+          const options = opts
+            .map((g) => ({ ...g, label: g.label.trim(), choices: g.choices.filter((c) => c.name.trim()).map((c) => ({ ...c, name: c.name.trim(), extra: Number(c.extra) || 0 })) }))
+            .filter((g) => g.label && g.choices.length);
+          onSave({ id: initial ? initial.id : uid(), name: f.name.trim(), blurb: f.blurb, style: f.style, course: f.course, guest: f.guest, minutes: Number(f.minutes) || 30, ingredients, steps: f.steps.split("\n").filter((l) => l.trim()), notes: f.notes, options });
+        }}>Save</Btn>
+        <Btn small tone="ghost" onClick={cancel}>Cancel</Btn>
+      </div>
+    </div>
+  );
+}
+
+function CookMode({ recipe, close }) {
+  const [i, setI] = useState(0);
+  const last = i >= recipe.steps.length - 1;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: `linear-gradient(180deg, ${C.bg}, ${C.bgDeep})`, padding: 24, zIndex: 95, display: "flex", flexDirection: "column", fontFamily: F }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ flex: 1, font: `400 27px ${F}`, color: C.ink }}>{recipe.name}</div>
+        <Btn small tone="ghost" onClick={close}>Done</Btn>
+      </div>
+      <Caps>Step {i + 1} of {recipe.steps.length}</Caps>
+      <div style={{ flex: 1, font: `400 26px/1.55 ${F}`, marginTop: 20, color: C.ink }}>{recipe.steps[i]}</div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn tone="ghost" onClick={() => setI(Math.max(0, i - 1))} style={{ flex: 1 }}>Back</Btn>
+        <Btn onClick={() => (last ? close() : setI(i + 1))} style={{ flex: 2 }}>{last ? "Plate it" : "Next"}</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Cellar({ data, update }) {
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const kinds = [["wine", "Wine"], ["cocktail", "Cocktails"], ["cold", "Cold drinks"], ["tea", "Tea & coffee"]];
+  const setStock = (id, d) => update((p) => ({ ...p, drinks: p.drinks.map((x) => x.id === id ? { ...x, stock: Math.max(0, x.stock + d) } : x) }));
+  const remove = (id) => update((p) => ({ ...p, drinks: p.drinks.filter((x) => x.id !== id) }));
+  return (
+    <div>
+      {kinds.map(([k, label]) => (
+        <div key={k} style={{ marginBottom: 18 }}>
+          <Caps style={{ marginBottom: 8 }}>{label}</Caps>
+          <div style={{ display: "grid", gap: 10 }}>
+            {data.drinks.filter((d) => d.kind === k).map((d) => (
+              <div key={d.id} style={{ borderBottom: `1px solid ${C.hair}`, paddingBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ font: `500 18px ${F}`, color: d.stock === 0 ? C.soft : C.ink }}>{d.name}{d.stock === 0 && " · out"}</div>
+                    <div style={{ font: `italic 15px/1.5 ${F}`, color: C.soft }}>{d.note}</div>
+                  </div>
+                  {d.stock < 90 && <><button onClick={() => setStock(d.id, -1)} style={stepBtn}>–</button><div style={{ font: `500 16px ${F}`, minWidth: 22, textAlign: "center" }}>{d.stock}</div><button onClick={() => setStock(d.id, 1)} style={stepBtn}>+</button></>}
+                  <button onClick={() => { setEditing(editing === d.id ? null : d.id); setAdding(false); }} style={{ ...stepBtn, color: C.soft, font: `italic 15px ${F}` }}>✎</button>
+                  <button onClick={() => remove(d.id)} style={{ ...stepBtn, color: C.soft }}>×</button>
+                </div>
+                {editing === d.id && <DrinkForm kinds={kinds} initial={d} onDone={(nd) => { update((p) => ({ ...p, drinks: p.drinks.map((x) => x.id === d.id ? { ...x, ...nd } : x) })); setEditing(null); }} cancel={() => setEditing(null)} />}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {adding ? (
+        <DrinkForm kinds={kinds} onDone={(nd) => { update((p) => ({ ...p, drinks: [...p.drinks, { id: uid(), stock: 1, pairs: [], ...nd }] })); setAdding(false); }} cancel={() => setAdding(false)} />
+      ) : <Btn small tone="quiet" onClick={() => { setAdding(true); setEditing(null); }}>Add a drink</Btn>}
+    </div>
+  );
+}
+
+function DrinkForm({ kinds, onDone, cancel, initial }) {
+  const [f, setF] = useState(initial
+    ? { name: initial.name, note: initial.note || "", kind: initial.kind, prep: initial.prep, iceable: !!initial.iceable, hotable: !!initial.hotable, sweeten: !!initial.sweeten, milkable: !!initial.milkable }
+    : { name: "", note: "", kind: "wine", prep: 3, iceable: false, hotable: false, sweeten: false, milkable: false });
+  const set = (k, v) => setF({ ...f, [k]: v });
+  const drinkish = f.kind === "cold" || f.kind === "tea";
+  return (
+    <div style={{ background: C.parchWell, borderRadius: 10, padding: 14, display: "grid", gap: 10, marginTop: 8 }}>
+      <Field placeholder="Name" value={f.name} onChange={(e) => set("name", e.target.value)} />
+      <Field placeholder="Short description" value={f.note} onChange={(e) => set("note", e.target.value)} />
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+        {kinds.map(([k, l]) => <Chip key={k} active={f.kind === k} onClick={() => set("kind", k)}>{l}</Chip>)}
+        <Field type="number" value={f.prep} onChange={(e) => set("prep", e.target.value)} style={{ width: 72 }} />
+        <span style={{ font: `15px ${F}`, color: C.soft }}>min</span>
+      </div>
+      {drinkish && (
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          <Chip active={f.iceable} onClick={() => set("iceable", !f.iceable)}>Iced option</Chip>
+          {f.kind === "cold" && <Chip active={f.hotable} onClick={() => set("hotable", !f.hotable)}>Hot option</Chip>}
+          <Chip active={f.sweeten} onClick={() => set("sweeten", !f.sweeten)}>Sweetener</Chip>
+          {f.kind === "tea" && <Chip active={f.milkable} onClick={() => set("milkable", !f.milkable)}>Milk</Chip>}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn small onClick={() => f.name.trim() && onDone({ ...f, prep: Number(f.prep) || 1 })}>{initial ? "Save" : "Add"}</Btn>
+        <Btn small tone="ghost" onClick={cancel}>Cancel</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Week({ data, update }) {
+  const on = new Set(data.menu);
+  const toggle = (id) => update((p) => ({ ...p, menu: p.menu.includes(id) ? p.menu.filter((x) => x !== id) : [...p.menu, id] }));
+  return (
+    <div>
+      <Sub>Ticked dishes are marked "This week" on the menu.</Sub>
+      <div style={{ display: "grid", gap: 9, marginTop: 14 }}>
+        {data.recipes.map((r) => (
+          <button key={r.id} onClick={() => toggle(r.id)} style={{ textAlign: "left", padding: 13, borderRadius: 10, cursor: "pointer", color: C.ink, border: `1px solid ${on.has(r.id) ? C.gold : C.hair}`, background: on.has(r.id) ? C.goldLt : C.parchWell }}>
+            <div style={{ font: `500 18px ${F}` }}>{r.name}</div>
+            <div style={{ font: `15px ${F}`, color: C.soft }}>{styleLabel[r.style]} · {mins(r.minutes)}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= DINER ================= */
+function Diner({ data, update, out, mode, sound }) {
+  const guest = mode === "guest";
+  const [cart, setCart] = useState([]);
+  const [customizing, setCustomizing] = useState(null);
+  const [dishOpt, setDishOpt] = useState(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [sent, setSent] = useState(null);
+  const [tab, setTab] = useState("food");
+  const [craving, setCraving] = useState("");
+  const [cravingSent, setCravingSent] = useState(false);
+
+  const inv = data.inventory;
+  const menuSet = new Set(data.menu);
+  const pool = data.recipes.filter((r) => (guest ? r.guest : true));
+  const dishes = useMemo(() => pool.map((r) => ({ ...r, ...recipeState(r, inv), onMenu: menuSet.has(r.id) })), [data.recipes, inv, data.menu, mode]);
+  const freshest = inv.filter((i) => i.fresh <= 2 && i.cat === "produce").map((i) => i.name);
+
+  const groups = (guest
+    ? [
+        { key: "plates", title: "Plates", list: dishes.filter((r) => r.course !== "dessert") },
+        { key: "sweet", title: "Sweet", list: dishes.filter((r) => r.course === "dessert") },
+      ]
+    : [
+        { key: "ready", title: "Ready now", note: "Everything is in the kitchen", list: dishes.filter((r) => r.level === "ready") },
+        { key: "shop", title: "After a quick shop", note: "Two hours' notice", list: dishes.filter((r) => r.level === "shop") },
+        { key: "ahead", title: "Ask ahead", note: "Choose a day when you order", list: dishes.filter((r) => r.level === "ahead") },
+      ]).filter((g) => g.list.length);
+  const drinkGroups = [["cold", "Cold"], ["tea", "Tea & Coffee"], ["wine", "Wine"], ["cocktail", "Cocktails"]];
+
+  const suggested = useMemo(() => { const s = new Set(); cart.filter((c) => c.type === "dish").forEach((c) => data.drinks.forEach((d) => d.pairs.includes(c.id) && s.add(d.id))); return s; }, [cart, data.drinks]);
+  const count = (type, id) => cart.filter((c) => c.type === type && c.id === id).length;
+  const removeOne = (type, id) => { const idx = cart.map((c, i) => (c.type === type && c.id === id ? i : -1)).filter((i) => i >= 0).pop(); if (idx === undefined) return; setCart(cart.filter((_, i) => i !== idx)); };
+  const addDish = (r) => {
+    if (r.options && r.options.length) { setDishOpt({ recipe: r, opts: {} }); return; }
+    setCart([...cart, { key: uid(), type: "dish", id: r.id }]);
+  };
+  const addDrink = (d) => {
+    if (!(d.iceable || d.hotable || d.sweeten || d.milkable)) { setCart([...cart, { key: uid(), type: "drink", id: d.id, opts: {} }]); return; }
+    setCustomizing({ drink: d, opts: { temp: "none", sweet: "none", milk: d.defaultMilk || "none", froth: false } });
+  };
+  const sendCraving = () => {
+    if (!craving.trim()) return;
+    update((p) => ({ ...p, cravings: [...p.cravings, { id: uid(), text: craving.trim(), done: false }] }));
+    sound.ping(); setCraving(""); setCravingSent(true); setTimeout(() => setCravingSent(false), 2400);
+  };
+
+  if (sent) return <Sent sent={sent} onAgain={() => { setSent(null); setCart([]); }} />;
+
+  const Row = ({ name, desc, time, tag, tagTone, n, onAdd, onRemove }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: `1px solid ${C.hair}` }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ font: `400 21px/1.25 ${F}`, color: C.ink }}>{name}</span>
+          {tag && <span style={{ font: `500 12px ${F}`, letterSpacing: "0.12em", textTransform: "uppercase", color: tagTone === "gold" ? "#7A5A12" : C.roseDeep }}>{tag}</span>}
+        </div>
+        {desc && <div style={{ font: `italic 16px/1.45 ${F}`, color: C.soft, marginTop: 1 }}>{desc}</div>}
+        <div style={{ font: `14px ${F}`, color: C.soft, marginTop: 4, letterSpacing: "0.04em" }}>{time}</div>
+      </div>
+      {n > 0 ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.parchWell, border: `1px solid ${C.line}`, borderRadius: 999, padding: 3 }}>
+          <button onClick={onRemove} style={roundBtn}>–</button>
+          <span style={{ font: `500 16px ${F}`, minWidth: 14, textAlign: "center" }}>{n}</span>
+          <button onClick={onAdd} style={{ ...roundBtn, background: C.tomato, color: "#fff", borderColor: C.tomato }}>+</button>
+        </div>
+      ) : <button onClick={onAdd} style={{ ...roundBtn, width: 36, height: 36, borderRadius: 18, background: C.tomato, color: "#fff", borderColor: C.tomato, fontSize: 22 }}>+</button>}
+    </div>
+  );
+  const Head = ({ title, note }) => (
+    <div style={{ marginTop: 28, marginBottom: 2, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+      <div style={{ font: `400 23px/1.2 ${F}`, color: C.ink }}>{title}</div>
+      {note && <div style={{ font: `italic 15px ${F}`, color: C.soft }}>{note}</div>}
+    </div>
+  );
+
+  return (
+    <div style={{ paddingBottom: cart.length ? 96 : 0 }}>
+      <Bar label={guest ? "Guest" : "Bran"} out={out} />
+      <Panel ornate>
+        <Caps style={{ textAlign: "center" }}>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}</Caps>
+        <Title size={34}>Menu</Title>
+        <Divider />
+        {freshest.length > 0 && <Sub>Freshest today — {freshest.join(", ")}</Sub>}
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
+          <Chip active={tab === "food"} onClick={() => setTab("food")}>Food</Chip>
+          <Chip active={tab === "drink"} onClick={() => setTab("drink")}>Drinks</Chip>
+        </div>
+
+        {tab === "food" && groups.map((g) => (
+          <div key={g.key}>
+            <Head title={g.title} note={g.note} />
+            {g.list.map((r) => (
+              <Row key={r.id} name={r.name} desc={r.blurb}
+                tag={guest ? null : r.onMenu ? "This week" : r.level === "shop" ? `Needs ${r.missing.join(", ")}` : null} tagTone={r.onMenu ? "gold" : "rose"}
+                time={`${mins(r.minutes)}${r.options && r.options.length ? " · choices" : ""}`} n={count("dish", r.id)} onAdd={() => addDish(r)} onRemove={() => removeOne("dish", r.id)} />
+            ))}
+          </div>
+        ))}
+
+        {tab === "food" && !guest && (
+          <div style={{ marginTop: 30, background: C.parchWell, borderRadius: 10, padding: 16 }}>
+            <div style={{ font: `400 22px ${F}`, marginBottom: 4 }}>Craving something else?</div>
+            <div style={{ font: `italic 15px ${F}`, color: C.soft, marginBottom: 10 }}>Tell Mayu what you're in the mood for.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Field placeholder="Something sour. Noodles. Soup." value={craving} onChange={(e) => setCraving(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendCraving()} />
+              <Btn small onClick={sendCraving} disabled={!craving.trim()}>{cravingSent ? "Sent" : "Send"}</Btn>
+            </div>
+          </div>
+        )}
+
+        {tab === "drink" && drinkGroups.map(([k, label]) => {
+          const list = data.drinks.filter((d) => d.kind === k && d.stock > 0);
+          if (!list.length) return null;
+          return (
+            <div key={k}>
+              <Head title={label} />
+              {list.map((d) => (
+                <Row key={d.id} name={d.name} desc={d.note} tag={suggested.has(d.id) ? "Pairs with your food" : null} tagTone="gold"
+                  time={mins(d.prep)} n={count("drink", d.id)} onAdd={() => addDrink(d)} onRemove={() => removeOne("drink", d.id)} />
+              ))}
+            </div>
+          );
+        })}
+      </Panel>
+
+      {cart.length > 0 && (
+        <div style={{ position: "sticky", bottom: 10, marginTop: 18, zIndex: 20 }}>
+          <button onClick={() => setReviewing(true)} style={{ width: "100%", background: `linear-gradient(180deg,${C.tomato},${C.tomatoDeep})`, color: "#fff", border: `1px solid ${OUT}`, borderRadius: 12, padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 10px 24px rgba(70,48,42,0.28)" }}>
+            <div style={{ width: 28, height: 28, borderRadius: 14, background: "rgba(255,255,255,0.24)", display: "grid", placeItems: "center", font: `500 15px ${F}` }}>{cart.length}</div>
+            <div style={{ flex: 1, textAlign: "left", font: `500 18px ${F}`, letterSpacing: "0.02em" }}>Review order</div>
+            <div style={{ font: `italic 16px ${F}`, color: C.goldLt }}>about {mins(cartTotals(cart, data).total)}</div>
+          </button>
+        </div>
+      )}
+
+      {dishOpt && <DishOptions state={dishOpt} close={() => setDishOpt(null)} add={(opts) => { setCart([...cart, { key: uid(), type: "dish", id: dishOpt.recipe.id, opts }]); setDishOpt(null); }} />}
+      {customizing && <Customize state={customizing} data={data} close={() => setCustomizing(null)} add={(opts) => { setCart([...cart, { key: uid(), type: "drink", id: customizing.drink.id, opts }]); setCustomizing(null); }} />}
+      {reviewing && <Review cart={cart} data={data} mode={mode} guest={guest} sound={sound} close={() => setReviewing(false)} removeAt={(k) => setCart(cart.filter((c) => c.key !== k))} onSend={(p) => { update(p.apply); setReviewing(false); setSent(p.receipt); }} />}
+    </div>
+  );
+}
+
+function DishOptions({ state, close, add }) {
+  const r = state.recipe;
+  const [sel, setSel] = useState(state.opts || {});
+  const toggle = (grp, cid) => {
+    const cur = sel[grp.id] || [];
+    if (grp.multi) setSel({ ...sel, [grp.id]: cur.includes(cid) ? cur.filter((x) => x !== cid) : [...cur, cid] });
+    else setSel({ ...sel, [grp.id]: cur.includes(cid) ? [] : [cid] });
+  };
+  const missing = (r.options || []).filter((grp) => grp.required && !(sel[grp.id] || []).length);
+  let extra = 0;
+  (r.options || []).forEach((grp) => (sel[grp.id] || []).forEach((cid) => { const c = grp.choices.find((x) => x.id === cid); if (c) extra += Number(c.extra) || 0; }));
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(70,48,42,0.4)", zIndex: 92, display: "flex", alignItems: "flex-end", backdropFilter: "blur(3px)", fontFamily: F }} onClick={close}>
+      <div onClick={(e) => e.stopPropagation()} className="bb-rise" style={{ background: C.parch, width: "100%", maxHeight: "88%", overflowY: "auto", borderRadius: "18px 18px 0 0", padding: "18px 20px 26px", borderTop: `2px solid ${C.gold}` }}>
+        <div style={{ width: 42, height: 4, borderRadius: 2, background: C.line, margin: "0 auto 14px" }} />
+        <Title size={26}>{r.name}</Title>
+        {r.blurb && <Sub>{r.blurb}</Sub>}
+        {(r.options || []).map((grp) => (
+          <div key={grp.id}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "20px 0 8px" }}>
+              <Caps>{grp.label}</Caps>
+              <span style={{ font: `italic 14px ${F}`, color: C.soft }}>{grp.required ? "choose one" : grp.multi ? "any number" : "optional"}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {grp.choices.map((c) => (
+                <Chip key={c.id} active={(sel[grp.id] || []).includes(c.id)} onClick={() => toggle(grp, c.id)}>
+                  {c.name}{Number(c.extra) ? ` +${c.extra}m` : ""}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div style={{ marginTop: 24, display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ flex: 1, font: `italic 16px ${F}`, color: C.soft }}>About {mins(r.minutes + extra)}</div>
+          <Btn tone="ghost" small onClick={close}>Cancel</Btn>
+          <Btn onClick={() => add(sel)} disabled={missing.length > 0}>Add</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Customize({ state, data, close, add }) {
+  const d = state.drink;
+  const [o, setO] = useState(state.opts);
+  const set = (k, v) => setO({ ...o, [k]: v });
+  const milkStock = (m) => { const h = findItem(m, data.inventory); return h && Number(h.qty) > 0; };
+  const iced = o.temp === "iced", hot = o.temp === "hot";
+  const icedTea = iced && d.kind === "tea";
+  const Label = ({ children }) => <Caps style={{ margin: "20px 0 8px" }}>{children}</Caps>;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(70,48,42,0.4)", zIndex: 92, display: "flex", alignItems: "flex-end", backdropFilter: "blur(3px)", fontFamily: F }} onClick={close}>
+      <div onClick={(e) => e.stopPropagation()} className="bb-rise" style={{ background: C.parch, width: "100%", maxHeight: "88%", overflowY: "auto", borderRadius: "18px 18px 0 0", padding: "18px 20px 26px", borderTop: `2px solid ${C.gold}` }}>
+        <div style={{ width: 42, height: 4, borderRadius: 2, background: C.line, margin: "0 auto 14px" }} />
+        <Title size={26}>{d.name}</Title>
+        <Sub>{d.note}</Sub>
+
+        {(d.iceable || d.hotable) && (<>
+          <Label>Add-ons</Label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {d.iceable && <Chip active={iced} onClick={() => set("temp", iced ? "none" : "iced")}>{d.kind === "tea" ? "Iced" : "Over ice"}</Chip>}
+            {d.hotable && <Chip active={hot} onClick={() => set("temp", hot ? "none" : "hot")}>Hot</Chip>}
+          </div>
+          {icedTea && <div style={{ font: `italic 15px/1.5 ${F}`, color: C.tomato, marginTop: 8 }}>Iced tea is brewed and chilled ahead — allow two hours.</div>}
+        </>)}
+
+        {d.sweeten && (<>
+          <Label>Sweetener</Label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {["none", "sugar", "maple syrup"].map((s) => <Chip key={s} active={o.sweet === s} onClick={() => set("sweet", s)}>{s === "none" ? "None" : s[0].toUpperCase() + s.slice(1)}</Chip>)}
+          </div>
+        </>)}
+
+        {d.milkable && (<>
+          <Label>Milk</Label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Chip active={o.milk === "none"} onClick={() => set("milk", "none")}>None</Chip>
+            {MILKS.map((m) => { const have = milkStock(m); return (
+              <button key={m} onClick={() => have && set("milk", m)} disabled={!have} style={{ font: `500 16px ${F}`, padding: "8px 16px", borderRadius: 999, whiteSpace: "nowrap", cursor: have ? "pointer" : "default", border: `1px solid ${o.milk === m ? OUT : C.line}`, background: o.milk === m ? C.sageDeep : C.parch, color: o.milk === m ? "#fff" : have ? C.soft : "#C4B5A4", textDecoration: have ? "none" : "line-through" }}>{m}{have ? "" : " · out"}</button>
+            ); })}
+          </div>
+          {o.milk !== "none" && <div style={{ marginTop: 10 }}><Chip active={o.froth} onClick={() => set("froth", !o.froth)}>{o.froth ? "Frothed" : "Froth it"}</Chip></div>}
+        </>)}
+
+        <div style={{ marginTop: 24, display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ flex: 1, font: `italic 16px ${F}`, color: C.soft }}>About {mins(d.prep + (icedTea ? ICED_LEAD : 0) + (hot && d.kind === "cold" ? 3 : 0))}</div>
+          <Btn tone="ghost" small onClick={close}>Cancel</Btn>
+          <Btn onClick={() => add(o)}>Add</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Review({ cart, data, mode, guest, close, removeAt, onSend, sound }) {
+  const [timing, setTiming] = useState("asap");
+  const [when, setWhen] = useState("");
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const t = cartTotals(cart, data);
+  const whenLabel = timing === "asap" ? `as soon as possible, about ${clock(t.at)}` : timing === "later" ? `later today${when ? `, ${when}` : ""}` : `another day${when ? `, ${when}` : ""}`;
+  const label = (it) => it.type === "dish" ? data.recipes.find((r) => r.id === it.id)?.name : data.drinks.find((d) => d.id === it.id)?.name;
+  const sub = (it) => it.type === "dish"
+    ? dishExtras(it, data.recipes.find((r) => r.id === it.id)).names.join(" · ")
+    : describeOpts(it.opts, data.drinks.find((d) => d.id === it.id));
+  const send = () => {
+    sound.bell();
+    const batch = { id: uid(), from: mode, when: new Date().toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }), items: cart.map(({ type, id, opts }) => ({ type, id, opts })) };
+    setTimeout(() => onSend({
+      apply: (p) => ({
+        ...p, history: [...(p.history || []), batch],
+        requests: [...p.requests, ...cart.map((it) => ({ id: uid(), from: mode, guestName: name.trim(), recipeId: it.type === "dish" ? it.id : undefined, drinkId: it.type === "drink" ? it.id : undefined, custom: sub(it), whenLabel, note: note.trim(), done: false }))],
+      }),
+      receipt: { count: cart.length, whenLabel, shop: t.shop > 0 && !guest, total: t.total, name: name.trim() },
+    }), 950);
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(70,48,42,0.4)", zIndex: 92, display: "flex", alignItems: "flex-end", backdropFilter: "blur(3px)", fontFamily: F }} onClick={close}>
+      <div onClick={(e) => e.stopPropagation()} className="bb-rise" style={{ background: C.parch, width: "100%", maxHeight: "93%", overflowY: "auto", borderRadius: "18px 18px 0 0", padding: "18px 20px 28px", borderTop: `2px solid ${C.gold}` }}>
+        <div style={{ width: 42, height: 4, borderRadius: 2, background: C.line, margin: "0 auto 14px" }} />
+        <Title size={28}>Your Order</Title>
+        <Divider w={36} />
+        <div style={{ display: "grid", gap: 10 }}>
+          {cart.map((it) => (
+            <div key={it.key} style={{ display: "flex", gap: 10, alignItems: "center", background: C.parchWell, borderRadius: 10, padding: 13 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: `500 18px ${F}` }}>{label(it)}</div>
+                {sub(it) && <div style={{ font: `italic 15px ${F}`, color: C.roseDeep }}>{sub(it)}</div>}
+                <div style={{ font: `15px ${F}`, color: C.soft }}>{mins(itemMinutes(it, data))}</div>
+              </div>
+              <button onClick={() => removeAt(it.key)} style={{ ...stepBtn, color: C.soft }}>×</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: C.parchWell, borderRadius: 10, padding: 14, marginTop: 14 }}>
+          {[["Cooking", mins(t.cookSum)], ["Plating", mins(t.handling)]].concat(t.shop && !guest ? [["Shopping first", mins(t.shop)]] : []).map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", font: `16px ${F}`, color: C.soft, marginBottom: 6 }}><span>{k}</span><span>{v}</span></div>
+          ))}
+          <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 8, paddingTop: 10, display: "flex", justifyContent: "space-between", font: `500 19px ${F}` }}><span>Estimated total</span><span>{mins(t.total)}</span></div>
+          {timing === "asap" && <div style={{ font: `italic 16px ${F}`, color: C.soft, marginTop: 6 }}>Ready around {clock(t.at)}</div>}
+        </div>
+        <Caps style={{ margin: "20px 0 8px" }}>When</Caps>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[["asap", "As soon as possible"], ["later", "Later today"], ["day", "Another day"]].map(([k, l]) => <Chip key={k} active={timing === k} onClick={() => setTiming(k)}>{l}</Chip>)}
+        </div>
+        {timing !== "asap" && <div style={{ marginTop: 10 }}><Field placeholder={timing === "later" ? "What time?" : "Which day and time?"} value={when} onChange={(e) => setWhen(e.target.value)} /></div>}
+        <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+          {guest && <Field placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />}
+          <Field placeholder={guest ? "Allergies or preferences" : "A note for the kitchen"} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        <div style={{ marginTop: 22 }}><ServiceBell onRing={send} label="Ring for service" /></div>
+      </div>
+    </div>
+  );
+}
+
+function Sent({ sent, onAgain }) {
+  return (
+    <div className="bb-rise" style={{ paddingTop: 22 }}>
+      <Panel ornate>
+        <div style={{ textAlign: "center" }}><BirdPost size={280} /></div>
+        <Divider />
+        <Title size={28}>It's on its way{sent.name ? `, ${sent.name}` : ""}</Title>
+        <p style={{ font: `17px/1.7 ${F}`, color: C.soft, maxWidth: 360, margin: "10px auto 0", textAlign: "center" }}>
+          {sent.count} {sent.count === 1 ? "item" : "items"} sent to the kitchen, {sent.whenLabel}. About {mins(sent.total)}.{sent.shop ? " Includes a shopping run." : ""}
+        </p>
+        <div style={{ textAlign: "center", marginTop: 20 }}><Btn tone="quiet" onClick={onAgain}>Order something else</Btn></div>
+      </Panel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
